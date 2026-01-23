@@ -54,7 +54,7 @@ def load_data():
     df.columns = [c.lower() for c in df.columns]
     
     # Sécurité colonnes et remplissage des vides
-    for c in ['genres', 'keywords', 'director', 'cast', 'all_themes', 'overview', 'name', 'category']:
+    for c in ['genres', 'keywords', 'director', 'cast', 'all_themes', 'description', 'name', 'category']:
         if c not in df.columns: df[c] = ""
         df[c] = df[c].fillna('').astype(str)
 
@@ -127,8 +127,8 @@ if selected_labels:
                     <p>{str(movie['year'])[:4]} | ⭐ {movie['rating']}</p>
                 ''', unsafe_allow_html=True)
                 
-                if movie['overview'] != "":
-                    st.markdown(f'<div class="desc-box"><p>{movie['overview'][:200]}...</p></div>', unsafe_allow_html=True)
+                if movie['description'] != "":
+                    st.markdown(f'<div class="desc-box"><p>{movie['description'][:200]}...</p></div>', unsafe_allow_html=True)
         else:
             col.warning(f"Plus de {category}.")
 
