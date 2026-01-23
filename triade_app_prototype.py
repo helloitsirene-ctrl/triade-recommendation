@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
 
-# --- CONFIGURATION PAGE & DESIGN ---
+# --- CONFIGURATION PAGE & DESIGN COMPACT ---
 st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 
 st.markdown(f"""
@@ -17,13 +17,13 @@ st.markdown(f"""
         color: white !important;
         text-align: center;
     }}
-    /* Alignement vertical et horizontal parfait */
+    /* Centrage et réduction des espaces */
     [data-testid="column"] {{
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
-        gap: 10px;
+        gap: 5px;
     }}
     .movie-container {{
         display: flex;
@@ -33,34 +33,24 @@ st.markdown(f"""
         text-align: center;
     }}
     .movie-poster {{
-        border-radius: 12px;
-        width: 180px;
-        transition: transform 0.3s, box-shadow 0.3s;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        border-radius: 10px;
+        width: 150px; /* Taille réduite pour tout voir sur une page */
+        transition: transform 0.2s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }}
     .movie-poster:hover {{
-        transform: scale(1.05);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.7);
-    }}
-    .tag-style {{
-        background-color: rgba(255, 255, 255, 0.15);
-        border-radius: 8px;
-        padding: 3px 10px;
-        margin: 3px;
-        display: inline-block;
-        font-size: 0.75rem;
-        color: #00d4ff !important; /* Bleu cyan pour plus de modernité */
-        font-weight: 600;
+        transform: scale(1.03);
     }}
     .description-text {{
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-style: italic;
-        margin-top: 10px;
-        max-width: 250px;
-        line-height: 1.4;
-        color: #e0e0e0 !important;
+        margin-top: 8px;
+        max-width: 220px;
+        line-height: 1.2;
+        color: #d1d1d1 !important;
     }}
     a {{ text-decoration: none !important; }}
+    hr {{ margin: 10px 0 !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -70,7 +60,7 @@ def load_data():
     df = pd.read_csv('Triade_ULTIMATE.csv')
     df.columns = [c.lower() for c in df.columns]
     
-    # Sécurisation des colonnes (évite le KeyError 'overview')
+    # Sécurité colonnes
     expected = ['genres', 'keywords', 'director', 'cast', 'all_themes', 'overview', 'name', 'category']
     for c in expected:
         if c not in df.columns: df[c] = ""
@@ -79,14 +69,13 @@ def load_data():
     if 'year' not in df.columns and 'date' in df.columns:
         df['year'] = df['date'].astype(str).str[:4]
     
-    # Label pour la barre de recherche : "Nom (Année)"
     df['search_label'] = df['name'] + " (" + df['year'].apply(lambda x: str(x).replace('.0', '')) + ")"
     
-    # --- ALGORITHME : PRIORITÉ AUX KEYWORDS (x5) ---
+    # --- ALGORITHME MIS À JOUR ---
     def create_soup(x):
-        # On inverse les poids : Keywords x5, Thèmes x3
+        # Keywords x5 (Priorité haute), Thèmes x2 (Priorité basse)
         keywords = (x['keywords'] + " ") * 5
-        themes = (x['all_themes'] + " ") * 3
+        themes = (x['all_themes'] + " ") * 2
         genres = (x['genres'] + " ") * 2
         crew = x['director'] + " " + x['cast']
         return (keywords + themes + genres + crew).lower()
@@ -106,35 +95,31 @@ if 'offset' not in st.session_state: st.session_state.offset = 0
 
 def get_combined_recs(search_labels):
     all_sim_scores = None
-    input_soups = []
     selected_indices = []
     for label in search_labels:
         idx = indices[label]
-        # Gestion propre de l'index (entier ou série)
         actual_idx = idx.iloc[0] if hasattr(idx, 'iloc') else idx
         selected_indices.append(actual_idx)
-        input_soups.append(df.iloc[actual_idx]['soup'])
         cos_sim = cosine_similarity(count_matrix[actual_idx], count_matrix)[0]
         all_sim_scores = cos_sim if all_sim_scores is None else all_sim_scores + cos_sim
             
     sim_scores = sorted(list(enumerate(all_sim_scores)), key=lambda x: x[1], reverse=True)
     movie_indices = [i[0] for i in sim_scores if i[0] not in selected_indices]
-    return df.iloc[movie_indices[0:150]], " ".join(input_soups)
+    return df.iloc[movie_indices[0:150]]
 
 # --- INTERFACE ---
-st.markdown("<h1 style='margin-bottom:0;'>🎬 La Triade</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='margin-bottom:0; font-size: 2.2rem;'>🎬 La Triade</h1>", unsafe_allow_html=True)
 
-# Barre de recherche multi-sélection (max 4)
 selected_labels = st.multiselect(
-    "Ajoute jusqu'à 4 films favoris :",
+    "Ajoute tes films favoris (max 4) :",
     options=df['search_label'].sort_values().unique().tolist(),
     max_selections=4,
-    placeholder="Commence à taper le nom d'un film..."
+    placeholder="Rechercher un film..."
 )
 
 if selected_labels:
-    results, combined_input_soup = get_combined_recs(selected_labels)
-    st.write("---")
+    results = get_combined_recs(selected_labels)
+    st.markdown("<hr>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
     
     def draw_movie(category, cat_filter, col):
@@ -142,49 +127,34 @@ if selected_labels:
         if len(recs) > st.session_state.offset:
             movie = recs.iloc[st.session_state.offset]
             
-            # Nettoyage des tags (extraction propre des mots sans quotes)
-            movie_words = re.findall(r'\w+', movie['soup'])
-            input_words = set(re.findall(r'\w+', combined_input_soup))
-            common_tags = []
-            for w in movie_words:
-                if w in input_words and len(w) > 3 and w not in common_tags:
-                    common_tags.append(w)
-                if len(common_tags) >= 5: break
-            
             url = movie['film_url'] if 'film_url' in movie and movie['film_url'] != "" else "#"
-            img = movie['poster_url'] if movie['poster_url'] != "" else "https://via.placeholder.com/180x270?text=Image+Indisponible"
+            img = movie['poster_url'] if movie['poster_url'] != "" else "https://via.placeholder.com/150x225?text=Image+Manquante"
 
             with col:
                 st.markdown(f"### {category}")
-                # POSTER ET TITRE CLIQUABLES
                 st.markdown(f'''
                     <div class="movie-container">
                         <a href="{url}" target="_blank">
                             <img src="{img}" class="movie-poster">
-                            <h4 style="margin:15px 0 5px 0; font-size:1.2rem;">{movie['name']}</h4>
+                            <h4 style="margin:8px 0 2px 0; font-size:1.1rem;">{movie['name']}</h4>
                         </a>
-                        <p style="margin-bottom:10px; font-weight:bold;">{str(movie['year'])[:4]} | ⭐ {movie['rating']}</p>
+                        <p style="margin-bottom:5px; font-size:0.9rem;">{str(movie['year'])[:4]} | ⭐ {movie['rating']}</p>
                     </div>
                 ''', unsafe_allow_html=True)
                 
-                # Tags propres
-                tags_html = "".join([f'<span class="tag-style">#{t}</span>' for t in common_tags])
-                st.markdown(f'<div>{tags_html}</div>', unsafe_allow_html=True)
-                
-                # Description
                 if movie['overview'] and movie['overview'] != "":
-                    desc = movie['overview'][:160] + "..." if len(movie['overview']) > 160 else movie['overview']
+                    desc = movie['overview'][:150] + "..." if len(movie['overview']) > 150 else movie['overview']
                     st.markdown(f'<p class="description-text">{desc}</p>', unsafe_allow_html=True)
         else:
-            col.warning(f"Plus de {category} disponible.")
+            col.warning(f"Plus de {category}.")
 
-    draw_movie("La Valeur Sûre", "Blockbuster", col1)
-    draw_movie("Le Choix Culte", "Culte", col2)
-    draw_movie("La Pépite", "Pépite", col3)
+    draw_movie("LA VALEUR SÛRE", "Blockbuster", col1)
+    draw_movie("LE CHOIX CULTE", "Culte", col2)
+    draw_movie("LA PÉPITE", "Pépite", col3)
 
-    st.write("---")
-    if st.button("🔄 Pas convaincu ? Voir d'autres résultats"):
+    st.markdown("<hr>", unsafe_allow_html=True)
+    if st.button("🔄 Voir d'autres résultats"):
         st.session_state.offset += 1
         st.rerun()
 else:
-    st.info("Utilise la barre de recherche ci-dessus pour lancer ta recommandation.")
+    st.info("Entre un ou plusieurs films pour voir ta Triade s'afficher.")
