@@ -7,7 +7,7 @@ import re
 # --- CONFIGURATION PAGE ---
 st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 
-# Couleurs Letterboxd
+# Tes couleurs Letterboxd
 APP_BG = "#14181c"
 DESC_BG = "#242c34"
 DESC_TEXT = "#93a0ae"
@@ -26,10 +26,22 @@ st.markdown(f"""
         font-size: 5rem !important; 
         color: white !important; 
         text-align: center;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
     }}
     
-    /* Centrage forcé des colonnes et de leur contenu */
+    /* Correction couleur barre de recherche */
+    div[data-baseweb="select"] > div {{
+        background-color: {DESC_BG} !important;
+        color: white !important;
+    }}
+    
+    /* Tags de sélection (films choisis) */
+    span[data-baseweb="tag"] {{
+        background-color: #455a64 !important;
+        color: white !important;
+    }}
+
+    /* Alignement vertical des colonnes de films */
     [data-testid="column"] {{
         display: flex;
         flex-direction: column;
@@ -50,7 +62,6 @@ st.markdown(f"""
         font-size: 1.8rem;
         color: {HIGHLIGHT_BLUE} !important;
         margin-top: 15px;
-        text-align: center;
     }}
 
     .desc-container {{
@@ -65,7 +76,6 @@ st.markdown(f"""
         font-size: 0.88rem;
         text-align: justify !important;
         line-height: 1.4;
-        margin: 0;
     }}
 
     .credits-text {{
@@ -75,35 +85,23 @@ st.markdown(f"""
         opacity: 0.8;
     }}
 
-    /* CENTRAGE DU BOUTON REFRESH */
-    .stButton {{
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        margin: 40px 0;
-    }}
-    
+    /* STYLE DU BOUTON (Version ligne de recherche) */
     .stButton > button {{
         background-color: {HIGHLIGHT_ORANGE} !important;
         color: white !important;
         border-radius: 5px;
-        padding: 12px 60px !important;
+        padding: 10px 20px !important;
         font-family: 'Bebas Neue';
-        font-size: 1.6rem;
+        font-size: 1.2rem;
         border: none;
-    }}
-    
-    /* Barre de recherche */
-    div[data-baseweb="select"] > div {{
-        background-color: {DESC_BG} !important;
+        width: 100%;
+        margin-top: 28px; /* Aligne avec le champ de texte */
     }}
 </style>
 """, unsafe_allow_html=True)
 
-# Fonction de nettoyage pour limiter le cast à 3 personnes
 def clean_credits(text, is_cast=False):
     if not text or text == "" or str(text).lower() == "nan": return "Non spécifié"
-    # Nettoyage des crochets/guillemets résiduels
     clean = re.sub(r"[\[\]'\"()]", "", str(text))
     if is_cast:
         items = [i.strip() for i in clean.split(',')]
@@ -112,7 +110,6 @@ def clean_credits(text, is_cast=False):
 
 @st.cache_data
 def load_data():
-    # Utilisation de ton nouveau fichier propre
     df = pd.read_csv('Triade_ULTIMATE_CLEAN.csv')
     df.columns = [c.lower().strip() for c in df.columns]
     for c in ['director', 'cast', 'description', 'minute', 'name', 'category']:
@@ -121,7 +118,6 @@ def load_data():
     if 'year' not in df.columns and 'date' in df.columns:
         df['year'] = df['date'].astype(str).str[:4]
     df['search_label'] = df['name'].astype(str) + " (" + df['year'].astype(str).str.replace('.0', '', regex=False) + ")"
-    # Soupe pour l'algorithme uniquement
     df['soup'] = df.apply(lambda x: (str(x['keywords'])+" ")*5 + (str(x['all_themes'])+" ")*2 + (str(x['genres'])+" ")*2 + str(x['director'])+" "+str(x['cast']).lower(), axis=1)
     return df
 
@@ -144,18 +140,30 @@ def get_combined_recs(search_labels):
     movie_indices = [i[0] for i in sim_scores if i[0] not in selected_indices]
     return df.iloc[movie_indices]
 
+# --- INTERFACE ---
 st.markdown("<h1>LA TRIADE</h1>", unsafe_allow_html=True)
 
-selected_labels = st.multiselect(
-    "RECHERCHE TES FILMS FAVORIS :",
-    options=df['search_label'].sort_values().unique().tolist(),
-    max_selections=4
-)
+# Barre de recherche et bouton sur la même ligne
+col_search, col_btn = st.columns([4, 1])
+
+with col_search:
+    selected_labels = st.multiselect(
+        "RECHERCHE TES FILMS FAVORIS :",
+        options=df['search_label'].sort_values().unique().tolist(),
+        max_selections=4
+    )
+
+with col_btn:
+    # On affiche le bouton seulement si des films sont sélectionnés
+    refresh = st.button("AUTRE TRIADE")
+    if refresh:
+        st.session_state.offset += 1
+        st.rerun()
 
 if selected_labels:
     results = get_combined_recs(selected_labels)
     st.write("---")
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
     
     def draw_movie(category, cat_filter, streamlit_col, highlight_color):
         recs = results[results['category'].str.lower() == cat_filter.lower()]
@@ -171,27 +179,17 @@ if selected_labels:
                 
                 year = str(movie['year'])[:4]
                 try:
-                    # Conversion propre de la durée
-                    time_val = float(movie['minute']) if movie['minute'] != "" else 0
-                    time = f"{int(time_val)} min" if time_val > 0 else ""
-                except:
-                    time = ""
+                    time = f"{int(float(movie['minute']))} min" if movie['minute'] != "" else ""
+                except: time = ""
                 
-                st.markdown(f"<p style='font-size:0.9rem; opacity:0.8; color:white; text-align:center;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
-                
+                st.markdown(f"<p style='font-size:0.9rem; opacity:0.8;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
                 st.markdown(f'<div class="desc-container"><p>{movie["description"][:280]}...</p></div>', unsafe_allow_html=True)
-                
-                # Affichage des crédits (limité à 3 pour le cast)
                 st.markdown(f"<p class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
                 st.markdown(f"<p class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
 
-    draw_movie("LA VALEUR SÛRE", "Blockbuster", col1, HIGHLIGHT_ORANGE)
-    draw_movie("LE CHOIX CULTE", "Culte", col2, HIGHLIGHT_BLUE)
-    draw_movie("LA PÉPITE", "Pépite", col3, HIGHLIGHT_GREEN)
+    draw_movie("LA VALEUR SÛRE", "Blockbuster", c1, HIGHLIGHT_ORANGE)
+    draw_movie("LE CHOIX CULTE", "Culte", c2, HIGHLIGHT_BLUE)
+    draw_movie("LA PÉPITE", "Pépite", c3, HIGHLIGHT_GREEN)
 
-    # Bouton rafraîchir centré
-    if st.button("VOIR D'AUTRES RÉSULTATS"):
-        st.session_state.offset += 1
-        st.rerun()
 else:
     st.info("Sélectionne des films pour découvrir ta Triade.")
