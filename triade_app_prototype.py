@@ -10,52 +10,43 @@ st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 st.markdown(f"""
 <style>
     .stApp {{ background-color: #445566; }}
-    h1, h2, h3, h4, h5, p, span {{ color: white !important; }}
+    h1, h2, h3, h4, h5, p, span {{ color: white !important; text-align: center; }}
     
-    /* Conteneur pour aligner Poster et Texte côte à côte */
-    .movie-box {{
+    /* Centrage forcé dans les colonnes */
+    [data-testid="column"] {{
         display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        background-color: rgba(255, 255, 255, 0.05);
-        padding: 15px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 10px;
-        min-height: 350px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        text-align: center;
     }}
     
-    .poster-side {{
-        flex: 0 0 120px;
-        margin-right: 15px;
-    }}
-
-    .info-side {{
-        flex: 1;
-        text-align: left;
-    }}
-
     .poster-img {{
-        width: 120px;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        width: 150px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        margin-bottom: 10px;
     }}
 
     .description-text {{
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         color: #e0e0e0 !important;
-        line-height: 1.3;
+        line-height: 1.4;
         text-align: justify;
-        margin: 8px 0;
+        margin: 15px 0;
+        padding: 0 10px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 10px;
     }}
 
     .credits-text {{
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: #FFD700 !important;
         margin: 2px 0;
     }}
 
-    /* Bouton Reload centré */
+    /* Centrage du bouton */
     .stButton {{
         display: flex;
         justify-content: center;
@@ -70,27 +61,20 @@ st.markdown(f"""
         font-weight: bold;
         padding: 10px 40px;
     }}
-    
-    a {{ text-decoration: none !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- FONCTIONS DE NETTOYAGE ---
-def clean_names(text, is_cast=False):
-    if not text or text == "" or str(text).lower() == "nan": 
+# --- FONCTION NETTOYAGE DIRECT ---
+def clean_raw_data(text, max_items=None):
+    if not text or text == "" or str(text).lower() == "nan":
         return "Non spécifié"
-    
-    # 1. Enlever les crochets, guillemets et parenthèses
+    # Supprime les résidus de format liste ['Nom']
     clean = re.sub(r"[\[\]'\"()]", "", str(text))
     
-    # 2. Séparer les noms collés (ex: WoodyHarrelson -> Woody Harrelson)
-    # On cherche une minuscule suivie d'une majuscule
-    clean = re.sub(r'([a-z])([A-Z])', r'\1 \2', clean)
-    
-    if is_cast:
-        # Nettoyage supplémentaire pour le cast (souvent séparé par des virgules cachées)
+    if max_items:
+        # Pour le cast, on prend les X premiers
         items = [i.strip() for i in clean.split(',')]
-        return ", ".join(items[:3])
+        return ", ".join(items[:max_items])
     return clean
 
 @st.cache_data
@@ -98,7 +82,7 @@ def load_data():
     df = pd.read_csv('Triade_ULTIMATE.csv')
     df.columns = [c.lower().strip() for c in df.columns]
     
-    # On utilise 'minute' pour le temps et 'description' pour le texte
+    # Sécurité sur les noms de colonnes
     runtime_col = 'minute' if 'minute' in df.columns else 'runtime'
     
     expected = ['genres', 'keywords', 'director', 'cast', 'all_themes', 'description', 'name', 'category', runtime_col]
@@ -111,12 +95,8 @@ def load_data():
     
     df['search_label'] = df['name'].astype(str) + " (" + df['year'].astype(str).str.replace('.0', '', regex=False) + ")"
     
-    # Algo : Keywords prioritaires (x5) / Thèmes secondaires (x2)
-    def create_soup(x):
-        return ((str(x['keywords'])+" ")*5 + (str(x['all_themes'])+" ")*2 + (str(x['genres'])+" ")*2 + str(x['director'])+" "+str(x['cast'])).lower()
-
-    df['soup'] = df.apply(create_soup, axis=1)
-    df['time_val'] = df[runtime_col]
+    # Soupe pour l'IA (Keywords x5, Thèmes x2)
+    df['soup'] = df.apply(lambda x: ((str(x['keywords'])+" ")*5 + (str(x['all_themes'])+" ")*2 + (str(x['genres'])+" ")*2 + str(x['director'])+" "+str(x['cast'])).lower(), axis=1)
     return df
 
 df = load_data()
@@ -139,65 +119,49 @@ def get_combined_recs(search_labels):
     return df.iloc[movie_indices[0:150]]
 
 # --- INTERFACE ---
-st.markdown("<h1 style='text-align:center;'>🎬 La Triade</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🎬 La Triade</h1>", unsafe_allow_html=True)
 selected_labels = st.multiselect("Choisis tes films (max 4) :", options=df['search_label'].sort_values().unique().tolist(), max_selections=4)
 
 if selected_labels:
     results = get_combined_recs(selected_labels)
     st.write("---")
-    
-    # On crée 3 colonnes pour mettre les 3 recommandations côte à côte
     col1, col2, col3 = st.columns(3)
     
-    def draw_movie_card(category, cat_filter, streamlit_col):
+    def draw_movie_col(category, cat_filter, streamlit_col):
         recs = results[results['category'].str.lower() == cat_filter.lower()]
         if len(recs) > st.session_state.offset:
             movie = recs.iloc[st.session_state.offset]
             url = str(movie['film_url'])
             img = str(movie['poster_url']) if movie['poster_url'] != "" else "https://via.placeholder.com/150x225"
             
-            # Affichage du temps
-            try:
-                t = int(float(movie['time_val']))
-                time_str = f"{t} min" if t > 0 else ""
-            except:
-                time_str = ""
+            # Temps
+            runtime_val = movie['minute'] if 'minute' in movie else movie.get('runtime', '')
+            time_display = f"{int(float(runtime_val))} min" if runtime_val and str(runtime_val).strip() != "" else ""
 
             with streamlit_col:
-                st.markdown(f"<h3 style='color:#FF4B4B !important; text-align:center;'>{category}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h2 style='color:#FF4B4B !important; font-size:1.4rem;'>{category}</h2>", unsafe_allow_html=True)
                 st.markdown(f'''
-                    <div class="movie-box">
-                        <div class="poster-side">
-                            <a href="{url}" target="_blank">
-                                <img src="{img}" class="poster-img">
-                            </a>
-                        </div>
-                        <div class="info-side">
-                            <a href="{url}" target="_blank">
-                                <h4 style="margin:0; font-size:1.1rem; color:white;">{movie['name']}</h4>
-                            </a>
-                            <p style="font-size:0.8rem; margin:5px 0; color:#ccc !important;">
-                                {str(movie['year'])[:4]} | ⭐ {movie['rating']} | {time_str}
-                            </p>
-                            <p class="description-text">{movie['description'][:180]}...</p>
-                            <p class="credits-text"><b>Dir:</b> {clean_names(movie['director'])}</p>
-                            <p class="credits-text"><b>Cast:</b> {clean_names(movie['cast'], True)}</p>
-                        </div>
-                    </div>
+                    <a href="{url}" target="_blank" style="text-decoration:none;">
+                        <img src="{img}" class="poster-img">
+                        <h4 style="margin:5px 0; font-size:1.2rem; line-height:1.2; color:white;">{movie['name']}</h4>
+                    </a>
+                    <p style="font-size:0.9rem; opacity:0.8;">{str(movie['year'])[:4]} | ⭐ {movie['rating']} {f"| {time_display}" if time_display else ""}</p>
+                    <div class="description-text">{str(movie['description'])[:300]}...</div>
+                    <p class="credits-text"><b>Director:</b> {clean_raw_data(movie['director'])}</p>
+                    <p class="credits-text"><b>Cast:</b> {clean_raw_data(movie['cast'], 3)}</p>
                 ''', unsafe_allow_html=True)
         else:
             streamlit_col.warning(f"Plus de {category}.")
 
-    draw_movie_card("LA VALEUR SÛRE", "Blockbuster", col1)
-    draw_movie_card("LE CHOIX CULTE", "Culte", col2)
-    draw_movie_card("LA PÉPITE", "Pépite", col3)
+    draw_movie_col("LA VALEUR SÛRE", "Blockbuster", col1)
+    draw_movie_col("LE CHOIX CULTE", "Culte", col2)
+    draw_movie_col("LA PÉPITE", "Pépite", col3)
 
     st.write("---")
-    # Centrage du bouton Reload
-    _, btn_col, _ = st.columns([1, 1, 1])
-    with btn_col:
+    _, mid, _ = st.columns([1, 1, 1])
+    with mid:
         if st.button("🔄 Voir d'autres résultats"):
             st.session_state.offset += 1
             st.rerun()
 else:
-    st.info("Entre un ou plusieurs films pour générer ta Triade.")
+    st.info("Sélectionne tes films pour générer ta Triade.")
