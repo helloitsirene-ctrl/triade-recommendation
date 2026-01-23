@@ -7,7 +7,7 @@ import re
 # --- CONFIGURATION PAGE ---
 st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 
-# Tes couleurs Letterboxd
+# Couleurs Letterboxd
 APP_BG = "#14181c"
 DESC_BG = "#242c34"
 DESC_TEXT = "#93a0ae"
@@ -21,7 +21,6 @@ st.markdown(f"""
 
     .stApp {{ background-color: {APP_BG}; }}
     
-    /* Titre Principal */
     h1 {{ 
         font-family: 'Bebas Neue', cursive; 
         font-size: 5rem !important; 
@@ -30,58 +29,32 @@ st.markdown(f"""
         margin-bottom: 30px;
     }}
     
-    /* Titres Catégories */
-    h2 {{ 
-        font-family: 'Bebas Neue', cursive; 
-        font-size: 2.2rem !important;
-        text-align: center;
-        margin-bottom: 20px;
-    }}
-
-    /* Titres Films stylisés en Bleu Letterboxd */
-    .movie-title {{
-        font-family: 'Bebas Neue', cursive;
-        font-size: 1.8rem;
-        color: {HIGHLIGHT_BLUE} !important;
-        margin-top: 15px;
-        line-height: 1.1;
-        text-align: center;
-    }}
-
-    /* Barre de recherche personnalisée */
-    div[data-baseweb="select"] > div {{
-        background-color: {DESC_BG} !important;
-        color: white !important;
-    }}
-    span[data-baseweb="tag"] {{
-        background-color: #455a64 !important;
-        color: white !important;
-    }}
-
-    /* Structure des colonnes */
+    /* Centrage forcé de chaque colonne */
     [data-testid="column"] {{
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
     }}
-    
+
+    /* CENTRAGE DU POSTER */
     .poster-img {{
         width: 160px;
         border-radius: 8px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
     }}
 
-    /* Bloc Info (Année, Note, Durée) */
-    .info-line {{
-        font-size: 0.9rem;
-        opacity: 0.8;
-        color: white;
-        margin-top: 8px;
+    .movie-title {{
+        font-family: 'Bebas Neue', cursive;
+        font-size: 1.8rem;
+        color: {HIGHLIGHT_BLUE} !important;
+        margin-top: 15px;
         text-align: center;
     }}
 
-    /* Boîte Description */
     .desc-container {{
         background-color: {DESC_BG};
         padding: 15px;
@@ -94,26 +67,24 @@ st.markdown(f"""
         font-size: 0.88rem;
         text-align: justify !important;
         line-height: 1.4;
-        margin: 0;
     }}
 
-    /* Crédits plus petits pour la hiérarchie */
     .credits-text {{
         font-size: 0.75rem;
         color: white !important;
         margin: 2px 0;
         opacity: 0.8;
     }}
-    .credits-label {{ color: {DESC_TEXT} !important; font-weight: bold; }}
 
-    /* CENTRAGE DU BOUTON REFRESH */
+    /* CENTRAGE ABSOLU DU BOUTON REFRESH */
     .stButton {{
+        text-align: center;
         display: flex;
         justify-content: center;
-        width: 100%;
-        margin-top: 40px;
+        margin: 40px 0;
     }}
-    .stButton>button {{
+    
+    .stButton > button {{
         background-color: {HIGHLIGHT_ORANGE} !important;
         color: white !important;
         border-radius: 5px;
@@ -121,19 +92,16 @@ st.markdown(f"""
         font-family: 'Bebas Neue';
         font-size: 1.6rem;
         border: none;
+        margin: 0 auto !important; /* Force le centrage */
+        display: block !important;
     }}
     
-    a {{ text-decoration: none !important; }}
+    /* Couleur barre de recherche */
+    div[data-baseweb="select"] > div {{
+        background-color: {DESC_BG} !important;
+    }}
 </style>
 """, unsafe_allow_html=True)
-
-def clean_names(text, limit=None):
-    if not text or text == "" or str(text).lower() == "nan": return "Non spécifié"
-    clean = re.sub(r"[\[\]'\"()]", "", str(text))
-    if limit:
-        items = [i.strip() for i in clean.split(',')]
-        return ", ".join(items[:limit])
-    return clean
 
 @st.cache_data
 def load_data():
@@ -167,7 +135,6 @@ def get_combined_recs(search_labels):
     movie_indices = [i[0] for i in sim_scores if i[0] not in selected_indices]
     return df.iloc[movie_indices]
 
-# --- INTERFACE ---
 st.markdown("<h1>LA TRIADE</h1>", unsafe_allow_html=True)
 
 selected_labels = st.multiselect(
@@ -193,30 +160,23 @@ if selected_labels:
                 st.markdown(f'<a href="{url}" target="_blank"><img src="{img}" class="poster-img"></a>', unsafe_allow_html=True)
                 st.markdown(f'<a href="{url}" target="_blank"><div class="movie-title">{movie["name"]}</div></a>', unsafe_allow_html=True)
                 
-                # Ligne d'info centrée
                 year = str(movie['year'])[:4]
                 try:
                     time = f"{int(float(movie['minute']))} min" if movie['minute'] != "" else ""
                 except:
                     time = ""
-                st.markdown(f"<div class='info-line'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</div>", unsafe_allow_html=True)
+                st.markdown(f"<p style='font-size:0.9rem; opacity:0.8; color:white;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
                 
-                st.markdown(f'''
-                    <div class="desc-container">
-                        <p>{movie["description"][:280]}...</p>
-                    </div>
-                ''', unsafe_allow_html=True)
+                st.markdown(f'<div class="desc-container"><p>{movie["description"][:280]}...</p></div>', unsafe_allow_html=True)
                 
-                st.markdown(f"<p class='credits-text'><span class='credits-label'>Director:</span> {clean_names(movie['director'])}</p>", unsafe_allow_html=True)
-                st.markdown(f"<p class='credits-text'><span class='credits-label'>Cast:</span> {clean_names(movie['cast'], 3)}</p>", unsafe_allow_html=True)
-        else:
-            streamlit_col.warning(f"Plus de {category}.")
+                st.markdown(f"<p class='credits-text'><b>Director:</b> {movie['director']}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p class='credits-text'><b>Cast:</b> {movie['cast']}</p>", unsafe_allow_html=True)
 
     draw_movie("LA VALEUR SÛRE", "Blockbuster", col1, HIGHLIGHT_ORANGE)
     draw_movie("LE CHOIX CULTE", "Culte", col2, HIGHLIGHT_BLUE)
     draw_movie("LA PÉPITE", "Pépite", col3, HIGHLIGHT_GREEN)
 
-    # Bouton Refresh
+    # Bouton rafraîchir
     if st.button("VOIR D'AUTRES RÉSULTATS"):
         st.session_state.offset += 1
         st.rerun()
