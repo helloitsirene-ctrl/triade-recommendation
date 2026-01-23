@@ -76,12 +76,16 @@ st.markdown(f"""
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv('Triade_ULTIMATE.csv')
+    try:
+        df = pd.read_csv('Triade_ULTIMATE.csv')
+    except:
+        st.error("Fichier Triade_ULTIMATE.csv introuvable.")
+        st.stop()
+        
     df.columns = [c.lower().strip() for c in df.columns]
     
     # --- SÉCURITÉ COLONNES ---
-    # On utilise 'description' au lieu d'overview
-    expected = ['genres', 'keywords', 'director', 'cast', 'all_themes', 'description', 'name', 'category', 'runtime']
+    expected = ['genres', 'keywords', 'director', 'cast', 'all_themes', 'description', 'name', 'category', 'runtime', 'poster_url', 'film_url', 'rating']
     for c in expected:
         if c not in df.columns: df[c] = ""
         df[c] = df[c].fillna('')
@@ -91,7 +95,7 @@ def load_data():
     
     df['search_label'] = df['name'].astype(str) + " (" + df['year'].astype(str).str.replace('.0', '', regex=False) + ")"
     
-    # Algo : Keywords prioritaires (x5) / Thèmes (x2)
+    # Algo : Keywords prioritaires (x5) / Thèmes secondaires (x2)
     def create_soup(x):
         return ((str(x['keywords']) + " ") * 5 + (str(x['all_themes']) + " ") * 2 + (str(x['genres']) + " ") * 2 + str(x['director']) + " " + str(x['cast'])).lower()
 
@@ -107,7 +111,7 @@ def format_runtime(minutes):
         return ""
 
 def clean_cast(cast_str):
-    if not cast_str: return "Non spécifié"
+    if not cast_str or cast_str == "": return "Non spécifié"
     clean = re.sub(r"[\[\]']", "", cast_str)
     items = [i.strip() for i in clean.split(',')]
     return ", ".join(items[:3])
@@ -126,7 +130,6 @@ def get_combined_recs(search_labels):
         actual_idx = idx.iloc[0] if hasattr(idx, 'iloc') else idx
         selected_indices.append(actual_idx)
         
-        # --- FIX SYNTAXE ICI ---
         cos_sim = cosine_similarity(count_matrix[actual_idx], count_matrix)[0]
         
         if all_sim_scores is None:
@@ -151,5 +154,42 @@ if selected_labels:
         recs = results[results['category'].str.lower() == cat_filter.lower()]
         if len(recs) > st.session_state.offset:
             movie = recs.iloc[st.session_state.offset]
-            url = movie['film_url'] if 'film_url' in movie and movie['film_url'] != "" else "#"
-            img = movie['poster_url'] if movie['poster_url'] != "" else "
+            url = str(movie['film_url']) if movie['film_url'] != "" else "#"
+            img = str(movie['poster_url']) if movie['poster_url'] != "" else "https://via.placeholder.com/150x225?text=Pas+d'image"
+            
+            st.markdown(f'''
+                <div class="movie-row">
+                    <div class="poster-container">
+                        <a href="{url}" target="_blank">
+                            <img src="{img}" class="poster-img">
+                        </a>
+                    </div>
+                    <div class="info-container">
+                        <h2 style="color:#FF4B4B !important; margin:0; font-size:1.5rem;">{category}</h2>
+                        <a href="{url}" target="_blank">
+                            <h3 style="margin:5px 0 0 0;">{movie['name']}</h3>
+                        </a>
+                        <p style="font-size:1rem; margin-top:5px; color:#ccc !important;">
+                            {str(movie['year'])[:4]} | ⭐ {movie['rating']} | ⏱️ {format_runtime(movie['runtime'])}
+                        </p>
+                        <p class="description-text">{movie['description']}</p>
+                        <p class="credits-text"><b>Director:</b> {movie['director']}</p>
+                        <p class="credits-text"><b>Cast:</b> {clean_cast(movie['cast'])}</p>
+                    </div>
+                </div>
+            ''', unsafe_allow_html=True)
+        else:
+            st.warning(f"Plus de {category} disponible.")
+
+    display_movie_row("LA VALEUR SÛRE", "Blockbuster")
+    display_movie_row("LE CHOIX CULTE", "Culte")
+    display_movie_row("LA PÉPITE", "Pépite")
+
+    st.write("---")
+    _, mid_col, _ = st.columns([1, 1, 1])
+    with mid_col:
+        if st.button("🔄 Voir d'autres résultats"):
+            st.session_state.offset += 1
+            st.rerun()
+else:
+    st.info("Ajoute un ou plusieurs films pour générer ta Triade personnalisée.")
