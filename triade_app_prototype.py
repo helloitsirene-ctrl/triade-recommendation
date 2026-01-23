@@ -2,36 +2,54 @@ import streamlit as st
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re
 
 # --- CONFIGURATION PAGE & DESIGN ---
 st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 
-# CSS pour le fond, le texte et le centrage
 st.markdown(f"""
 <style>
     .stApp {{
         background-color: #445566;
         color: white;
     }}
-    h1, h2, h3, h4, p, span, label {{
+    h1, h2, h3, h4, h5, p, span, label {{
         color: white !important;
+        text-align: center;
+        justify-content: center;
+    }}
+    /* Centrage forcé de tous les blocs dans les colonnes */
+    [data-testid="column"] {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         text-align: center;
     }}
     .stMultiSelect div div div div {{
         color: black !important;
     }}
-    img {{
-        border-radius: 15px;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
+    /* Taille réduite des posters et centrage */
+    .movie-poster {{
+        border-radius: 12px;
+        width: 180px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        margin-bottom: 10px;
     }}
-    div[data-testid="column"] {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+    .tag-style {{
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 2px 8px;
+        margin: 2px;
+        display: inline-block;
+        font-size: 0.8rem;
+        color: #ff4b4b !important;
+    }}
+    .description-text {{
+        font-size: 0.9rem;
+        font-style: italic;
+        margin-top: 10px;
+        max-width: 250px;
+        text-align: justify;
     }}
     .stButton>button {{
         border-radius: 20px;
@@ -51,8 +69,13 @@ def load_data():
     if 'year' not in df.columns and 'date' in df.columns:
         df['year'] = df['date'].astype(str).str[:4]
     
-    cols = ['genres', 'keywords', 'director', 'cast', 'all_themes']
-    for c in cols: df[c] = df[c].fillna('').astype(str)
+    # On s'assure que toutes les colonnes nécessaires sont du texte
+    cols = ['genres', 'keywords', 'director', 'cast', 'all_themes', 'overview', 'name']
+    for c in cols:
+        if c in df.columns:
+            df[c] = df[c].fillna('').astype(str)
+        else:
+            df[c] = ""
 
     def create_soup(x):
         # Priorité maximale aux thèmes (x5)
@@ -70,43 +93,45 @@ df = load_data()
 count_matrix = get_vectorizer(df)
 indices = pd.Series(df.index, index=df['name'].str.lower()).drop_duplicates()
 
-# --- ETAT DE LA SESSION ---
+# --- ÉTAT DE LA SESSION ---
 if 'offset' not in st.session_state: st.session_state.offset = 0
 
-# --- MOTEUR MULTI-FILMS ---
+# --- MOTEUR ---
 def get_combined_recs(titles):
     all_sim_scores = None
+    input_soups = []
     
     for title in titles:
         idx = indices[title.lower()]
         if isinstance(idx, pd.Series): idx = idx.iloc[0]
+        input_soups.append(df.iloc[idx]['soup'])
         
         cos_sim = cosine_similarity(count_matrix[idx], count_matrix)[0]
         if all_sim_scores is None:
             all_sim_scores = cos_sim
         else:
-            all_sim_scores += cos_sim # On additionne les scores pour trouver les films proches de TOUS les choix
+            all_sim_scores += cos_sim
             
     sim_scores = list(enumerate(all_sim_scores))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
     
-    # Exclure les films sélectionnés
-    selected_indices = [indices[t.lower()] for t in titles]
+    selected_indices = [indices[t.lower()] if isinstance(indices[t.lower()], (int, float)) else indices[t.lower()].iloc[0] for t in titles]
     movie_indices = [i[0] for i in sim_scores if i[0] not in selected_indices]
     
-    return df.iloc[movie_indices[0:150]]
+    return df.iloc[movie_indices[0:150]], " ".join(input_soups)
 
 # --- INTERFACE ---
-st.markdown("<h1 style='font-size: 3rem;'>🎬 La Triade</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='margin-bottom:0;'>🎬 La Triade</h1>", unsafe_allow_html=True)
+st.markdown("<p style='margin-top:0;'>Recommandations basées sur tes thèmes favoris</p>", unsafe_allow_html=True)
 
 selected_movies = st.multiselect(
-    "Choisis jusqu'à 4 films que tu as aimés :",
+    "Choisis jusqu'à 4 films :",
     options=sorted(df['name'].unique().tolist()),
     max_selections=4
 )
 
 if selected_movies:
-    results = get_combined_recs(selected_movies)
+    results, combined_input_soup = get_combined_recs(selected_movies)
     
     st.write("---")
     col1, col2, col3 = st.columns(3)
@@ -115,17 +140,32 @@ if selected_movies:
         recs = results[results['category'].str.lower() == cat_filter.lower()]
         if len(recs) > st.session_state.offset:
             movie = recs.iloc[st.session_state.offset]
+            
+            # Extraction des tags communs (mots de la soupe du film présents dans la recherche)
+            movie_words = set(recs.iloc[st.session_state.offset]['soup'].split())
+            input_words = set(combined_input_soup.split())
+            common_tags = [word for word in movie_words if word in input_words and len(word) > 3][:5]
+            
             with col:
                 st.markdown(f"### {category}")
-                if pd.notna(movie['poster_url']):
-                    st.image(movie['poster_url'], width=250)
-                else:
-                    st.image("https://via.placeholder.com/500x750?text=No+Poster", width=250)
+                # Poster avec classe CSS pour la taille
+                img_url = movie['poster_url'] if pd.notna(movie['poster_url']) else "https://via.placeholder.com/180x270?text=No+Poster"
+                st.markdown(f'<img src="{img_url}" class="movie-poster">', unsafe_allow_html=True)
                 
+                # Infos centrées
                 st.markdown(f"#### {movie['name']}")
-                year = str(movie['year'])[:4] if 'year' in movie else "N/A"
+                year = str(movie['year'])[:4]
                 rating = f"⭐ {movie['rating']}" if 'rating' in movie else ""
                 st.write(f"{year} | {rating}")
+                
+                # Tags
+                tags_html = "".join([f'<span class="tag-style">#{tag}</span>' for tag in common_tags])
+                st.markdown(tags_html, unsafe_allow_html=True)
+                
+                # Description
+                if 'overview' in movie and movie['overview']:
+                    description = movie['overview'][:150] + "..." if len(movie['overview']) > 150 else movie['overview']
+                    st.markdown(f'<p class="description-text">{description}</p>', unsafe_allow_html=True)
                 
                 url = movie['film_url'] if 'film_url' in movie else "#"
                 st.markdown(f"[Voir sur Letterboxd ↗]({url})")
@@ -142,4 +182,4 @@ if selected_movies:
         st.session_state.offset += 1
         st.rerun()
 else:
-    st.info("Ajoute au moins un film pour voir apparaître ta Triade.")
+    st.info("Ajoute tes films favoris pour voir apparaître ta Triade.")
