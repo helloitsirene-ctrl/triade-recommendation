@@ -8,7 +8,6 @@ Original file is located at
 """
 
 # Commented out IPython magic to ensure Python compatibility.
-# %%writefile app.py
 # import streamlit as st
 # import pandas as pd
 # from sklearn.feature_extraction.text import CountVectorizer
