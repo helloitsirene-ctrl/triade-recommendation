@@ -7,13 +7,14 @@ import re
 # --- CONFIGURATION PAGE ---
 st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 
-# Couleurs
+# Couleurs Letterboxd
 APP_BG = "#14181c"
 DESC_BG = "#242c34"
 DESC_TEXT = "#93a0ae"
 HIGHLIGHT_ORANGE = "#f59331"
 HIGHLIGHT_BLUE = "#3fb8ef"
 HIGHLIGHT_GREEN = "#00ba2e"
+SEARCH_GRAY = "#e0e0e0"
 
 st.markdown(f"""
 <style>
@@ -21,28 +22,26 @@ st.markdown(f"""
 
     .stApp {{ background-color: {APP_BG}; }}
     
+    /* Titre Principal */
     h1 {{ 
         font-family: 'Bebas Neue', cursive; 
         font-size: 5rem !important; 
         color: white !important; 
         text-align: center;
         margin-bottom: 20px;
+        width: 100%;
     }}
 
-    /* BARRE DE RECHERCHE GRIS CLAIR */
+    /* BARRE DE RECHERCHE ET TAGS (Gris Clair) */
     div[data-baseweb="select"] > div {{
-        background-color: #d1d1d1 !important;
+        background-color: {SEARCH_GRAY} !important;
+        color: #14181c !important;
+    }}
+    span[data-baseweb="tag"] {{
+        background-color: #b0b0b0 !important;
         color: #14181c !important;
     }}
     
-    /* Couleur du texte à l'intérieur de la liste déroulante */
-    div[data-baseweb="popover"] ul {{
-        background-color: #e0e0e0 !important;
-    }}
-    
-    div[data-baseweb="popover"] li {{
-        color: #14181c !important;
-    }}
     /* BOUTON RELOAD À DROITE */
     .stButton > button {{
         background-color: {HIGHLIGHT_ORANGE} !important;
@@ -52,7 +51,7 @@ st.markdown(f"""
         height: 48px;
         font-size: 1.5rem !important;
         border: none;
-        margin-top: 28px; /* Aligne avec le champ de texte */
+        margin-top: 28px;
     }}
 
     /* CENTRAGE ABSOLU DES COLONNES */
@@ -60,7 +59,7 @@ st.markdown(f"""
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         text-align: center;
     }}
 
@@ -68,24 +67,33 @@ st.markdown(f"""
         width: 160px;
         border-radius: 8px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-        display: block;
         margin: 0 auto;
+        display: block;
     }}
 
     .movie-title {{
         font-family: 'Bebas Neue', cursive;
-        font-size: 1.8rem;
+        font-size: 2rem;
         color: {HIGHLIGHT_BLUE} !important;
         margin-top: 15px;
+        text-align: center !important;
+        width: 100%;
+    }}
+
+    .info-line {{
         text-align: center;
+        width: 100%;
+        color: white;
+        opacity: 0.8;
+        font-size: 0.9rem;
+        margin: 5px 0;
     }}
 
     .desc-container {{
         background-color: {DESC_BG};
         padding: 15px;
         border-radius: 8px;
-        margin: 15px 10px;
-        min-height: 120px;
+        margin: 15px auto;
         width: 90%;
     }}
     
@@ -98,11 +106,12 @@ st.markdown(f"""
     }}
 
     .credits-text {{
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: white !important;
         margin: 2px 0;
-        opacity: 0.8;
-        text-align: center;
+        opacity: 0.9;
+        text-align: center !important;
+        width: 100%;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -124,6 +133,7 @@ def load_data():
     if 'year' not in df.columns and 'date' in df.columns:
         df['year'] = df['date'].astype(str).str[:4]
     df['search_label'] = df['name'].astype(str) + " (" + df['year'].astype(str).str.replace('.0', '', regex=False) + ")"
+    # Soupe pour le calcul
     df['soup'] = df.apply(lambda x: (str(x['keywords'])+" ")*5 + (str(x['all_themes'])+" ")*2 + (str(x['genres'])+" ")*2 + str(x['director'])+" "+str(x['cast']).lower(), axis=1)
     return df
 
@@ -149,7 +159,7 @@ def get_combined_recs(search_labels):
 # --- INTERFACE ---
 st.markdown("<h1>LA TRIADE</h1>", unsafe_allow_html=True)
 
-# BLOC RECHERCHE + BOUTON
+# Ligne de recherche et bouton
 c_search, c_btn = st.columns([10, 1])
 
 with c_search:
@@ -177,22 +187,28 @@ if selected_labels:
             img = str(movie['poster_url']) if movie['poster_url'] != "" else "https://via.placeholder.com/160x240"
             
             with streamlit_col:
-                # Dans la fonction draw_movie, remplace les lignes d'info par ceci :
-    st.markdown(f"<p style='text-align: center; font-size:0.9rem; opacity:0.8;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
-    
-    # Et pour les crédits :
-    st.markdown(f"<p style='text-align: center;' class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center;' class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
+                # Titre catégorie
+                st.markdown(f"<h2 style='color:{highlight_color} !important; text-align: center;'>{category}</h2>", unsafe_allow_html=True)
                 
+                # Poster
+                st.markdown(f'<a href="{url}" target="_blank"><img src="{img}" class="poster-img"></a>', unsafe_allow_html=True)
+                
+                # Titre Film
+                st.markdown(f'<a href="{url}" target="_blank" style="text-decoration:none;"><div class="movie-title">{movie["name"]}</div></a>', unsafe_allow_html=True)
+                
+                # Infos (Année | Note | Temps)
                 year = str(movie['year'])[:4]
                 try:
                     time = f"{int(float(movie['minute']))} min" if movie['minute'] != "" else ""
                 except: time = ""
+                st.markdown(f"<div class='info-line'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</div>", unsafe_allow_html=True)
                 
-                st.markdown(f"<p style='font-size:0.9rem; opacity:0.8;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
+                # Description
                 st.markdown(f'<div class="desc-container"><p>{movie["description"][:280]}...</p></div>', unsafe_allow_html=True)
-                st.markdown(f"<p class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
-                st.markdown(f"<p class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
+                
+                # Crédits
+                st.markdown(f"<div class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</div>", unsafe_allow_html=True)
 
     draw_movie("LA VALEUR SÛRE", "Blockbuster", col1, HIGHLIGHT_ORANGE)
     draw_movie("LE CHOIX CULTE", "Culte", col2, HIGHLIGHT_BLUE)
