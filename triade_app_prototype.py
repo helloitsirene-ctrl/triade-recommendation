@@ -106,7 +106,7 @@ st.markdown(f"""
     }}
 
     .credits-text {{
-        font-size: 1.3rem;
+        font-size: 1.0rem;
         color: white !important;
         margin: 2px 0;
         opacity: 0.9;
