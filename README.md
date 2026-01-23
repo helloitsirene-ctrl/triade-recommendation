@@ -2,7 +2,7 @@
 
 Je présente ici mon application de recommandation cinématographique personnalisée. L'objectif de ce projet est d'offrir une alternative aux algorithmes de recommandation classiques en proposant une sélection de trois films aux profils distincts, générée à partir d'une analyse sémantique profonde.
 
-### [Lien vers l'application](https://www.google.com/search?q=TON_LIEN_STREAMLIT_ICI)
+### [Lien vers l'application](https://triade-recommendation.streamlit.app/#la-triade)
 
 ---
 
