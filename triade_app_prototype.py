@@ -35,6 +35,14 @@ st.markdown(f"""
         color: #14181c !important;
     }}
     
+    /* Couleur du texte à l'intérieur de la liste déroulante */
+    div[data-baseweb="popover"] ul {{
+        background-color: #e0e0e0 !important;
+    }}
+    
+    div[data-baseweb="popover"] li {{
+        color: #14181c !important;
+    }}
     /* BOUTON RELOAD À DROITE */
     .stButton > button {{
         background-color: {HIGHLIGHT_ORANGE} !important;
@@ -169,9 +177,12 @@ if selected_labels:
             img = str(movie['poster_url']) if movie['poster_url'] != "" else "https://via.placeholder.com/160x240"
             
             with streamlit_col:
-                st.markdown(f"<h2 style='color:{highlight_color} !important;'>{category}</h2>", unsafe_allow_html=True)
-                st.markdown(f'<a href="{url}" target="_blank"><img src="{img}" class="poster-img"></a>', unsafe_allow_html=True)
-                st.markdown(f'<a href="{url}" target="_blank"><div class="movie-title">{movie["name"]}</div></a>', unsafe_allow_html=True)
+                # Dans la fonction draw_movie, remplace les lignes d'info par ceci :
+    st.markdown(f"<p style='text-align: center; font-size:0.9rem; opacity:0.8;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
+    
+    # Et pour les crédits :
+    st.markdown(f"<p style='text-align: center;' class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center;' class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
                 
                 year = str(movie['year'])[:4]
                 try:
