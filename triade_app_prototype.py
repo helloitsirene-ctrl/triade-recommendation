@@ -7,7 +7,7 @@ import re
 # --- CONFIGURATION PAGE ---
 st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 
-# Tes couleurs Letterboxd
+# Couleurs
 APP_BG = "#14181c"
 DESC_BG = "#242c34"
 DESC_TEXT = "#93a0ae"
@@ -21,7 +21,6 @@ st.markdown(f"""
 
     .stApp {{ background-color: {APP_BG}; }}
     
-    /* Titre Principal */
     h1 {{ 
         font-family: 'Bebas Neue', cursive; 
         font-size: 5rem !important; 
@@ -29,27 +28,34 @@ st.markdown(f"""
         text-align: center;
         margin-bottom: 20px;
     }}
-    
-    /* Centrage de la barre de recherche */
-    .stMultiSelect {{
-        max-width: 800px;
-        margin: 0 auto !important;
+
+    /* BARRE DE RECHERCHE GRIS CLAIR */
+    div[data-baseweb="select"] > div {{
+        background-color: #d1d1d1 !important;
+        color: #14181c !important;
     }}
     
-    div[data-baseweb="select"] > div {{
-        background-color: {DESC_BG} !important;
+    /* BOUTON RELOAD À DROITE */
+    .stButton > button {{
+        background-color: {HIGHLIGHT_ORANGE} !important;
         color: white !important;
+        border-radius: 8px;
+        width: 50px;
+        height: 48px;
+        font-size: 1.5rem !important;
+        border: none;
+        margin-top: 28px; /* Aligne avec le champ de texte */
     }}
 
-    /* Alignement des colonnes de films */
+    /* CENTRAGE ABSOLU DES COLONNES */
     [data-testid="column"] {{
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         text-align: center;
     }}
 
-    /* Centrage Posters */
     .poster-img {{
         width: 160px;
         border-radius: 8px;
@@ -63,6 +69,7 @@ st.markdown(f"""
         font-size: 1.8rem;
         color: {HIGHLIGHT_BLUE} !important;
         margin-top: 15px;
+        text-align: center;
     }}
 
     .desc-container {{
@@ -71,37 +78,23 @@ st.markdown(f"""
         border-radius: 8px;
         margin: 15px 10px;
         min-height: 120px;
+        width: 90%;
     }}
+    
     .desc-container p {{
         color: {DESC_TEXT} !important;
         font-size: 0.88rem;
         text-align: justify !important;
         line-height: 1.4;
+        margin: 0;
     }}
 
-    /* BOUTON RELOAD CARRÉ ET CENTRÉ */
-    .stButton {{
-        display: flex;
-        justify-content: center;
-        margin: 20px 0;
-    }}
-    
-    .stButton > button {{
-        background-color: {HIGHLIGHT_ORANGE} !important;
+    .credits-text {{
+        font-size: 0.75rem;
         color: white !important;
-        border-radius: 8px; /* Carré légèrement arrondi */
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem !important;
-        border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.2s;
-    }}
-    
-    .stButton > button:hover {{
-        transform: rotate(90deg);
+        margin: 2px 0;
+        opacity: 0.8;
+        text-align: center;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -120,7 +113,6 @@ def load_data():
     df.columns = [c.lower().strip() for c in df.columns]
     for c in ['director', 'cast', 'description', 'minute', 'name', 'category']:
         if c not in df.columns: df[c] = ""
-        df[c] = df[c].fillna('')
     if 'year' not in df.columns and 'date' in df.columns:
         df['year'] = df['date'].astype(str).str[:4]
     df['search_label'] = df['name'].astype(str) + " (" + df['year'].astype(str).str.replace('.0', '', regex=False) + ")"
@@ -149,21 +141,25 @@ def get_combined_recs(search_labels):
 # --- INTERFACE ---
 st.markdown("<h1>LA TRIADE</h1>", unsafe_allow_html=True)
 
-selected_labels = st.multiselect(
-    "RECHERCHE TES FILMS FAVORIS :",
-    options=df['search_label'].sort_values().unique().tolist(),
-    max_selections=4
-)
+# BLOC RECHERCHE + BOUTON
+c_search, c_btn = st.columns([10, 1])
 
-# Affichage du bouton de reload centré si des films sont choisis
-if selected_labels:
+with c_search:
+    selected_labels = st.multiselect(
+        "RECHERCHE TES FILMS FAVORIS :",
+        options=df['search_label'].sort_values().unique().tolist(),
+        max_selections=4
+    )
+
+with c_btn:
     if st.button("🔄"):
         st.session_state.offset += 1
         st.rerun()
 
+if selected_labels:
     results = get_combined_recs(selected_labels)
     st.write("---")
-    c1, c2, c3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
     
     def draw_movie(category, cat_filter, streamlit_col, highlight_color):
         recs = results[results['category'].str.lower() == cat_filter.lower()]
@@ -184,12 +180,12 @@ if selected_labels:
                 
                 st.markdown(f"<p style='font-size:0.9rem; opacity:0.8;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
                 st.markdown(f'<div class="desc-container"><p>{movie["description"][:280]}...</p></div>', unsafe_allow_html=True)
-                st.markdown(f"<p style='font-size:0.75rem; color:white; opacity:0.8;'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
-                st.markdown(f"<p style='font-size:0.75rem; color:white; opacity:0.8;'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
 
-    draw_movie("LA VALEUR SÛRE", "Blockbuster", c1, HIGHLIGHT_ORANGE)
-    draw_movie("LE CHOIX CULTE", "Culte", c2, HIGHLIGHT_BLUE)
-    draw_movie("LA PÉPITE", "Pépite", c3, HIGHLIGHT_GREEN)
+    draw_movie("LA VALEUR SÛRE", "Blockbuster", col1, HIGHLIGHT_ORANGE)
+    draw_movie("LE CHOIX CULTE", "Culte", col2, HIGHLIGHT_BLUE)
+    draw_movie("LA PÉPITE", "Pépite", col3, HIGHLIGHT_GREEN)
 
 else:
     st.info("Sélectionne des films pour découvrir ta Triade.")
