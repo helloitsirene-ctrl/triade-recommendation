@@ -2,56 +2,48 @@ import streamlit as st
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import re
+import re  # Indispensable pour le nettoyage des textes
 
 # --- CONFIGURATION PAGE ---
 st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 
-# CSS pour forcer l'apparence
 st.markdown(f"""
 <style>
-    .stApp {{
-        background-color: #445566;
-    }}
-    /* Tout le texte de base en blanc */
-    h1, h2, h3, h4, h5, p, span {{
-        color: white !important;
-    }}
-    /* Centrage des colonnes Streamlit */
-    [data-testid="column"] {{
-        text-align: center;
-    }}
-    /* Style spécifique pour la description (fond clair, texte noir) */
+    .stApp {{ background-color: #445566; }}
+    h1, h2, h3, h4, h5, p, span {{ color: white !important; text-align: center; }}
+    [data-testid="column"] {{ text-align: center; display: flex; flex-direction: column; align-items: center; }}
+    
+    /* Style de la boîte de description : Texte noir sur fond blanc cassé */
     .desc-box {{
         background-color: #f8f9fa;
-        color: #333333 !important;
-        padding: 10px;
+        padding: 12px;
         border-radius: 8px;
-        font-size: 0.85rem;
         margin-top: 10px;
-        text-align: justify;
-        line-height: 1.3;
+        max-width: 240px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }}
     .desc-box p {{
         color: #333333 !important;
+        font-size: 0.85rem;
+        font-style: italic;
+        text-align: justify;
+        line-height: 1.3;
         margin: 0;
     }}
-    /* Le bouton Refresh */
-    .stButton>button {{
-        background-color: #FF4B4B !important;
-        color: white !important;
-        font-weight: bold;
-        border-radius: 20px;
-        padding: 10px 30px;
-        border: none;
-    }}
-    .movie-link {{
-        text-decoration: none;
-    }}
+    
     .poster-img {{
         width: 150px;
         border-radius: 10px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        transition: transform 0.2s;
+    }}
+    .poster-img:hover {{ transform: scale(1.05); }}
+    .stButton>button {{
+        background-color: #FF4B4B !important;
+        color: white !important;
+        border-radius: 20px;
+        padding: 10px 30px;
+        font-weight: bold;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -61,9 +53,8 @@ def load_data():
     df = pd.read_csv('Triade_ULTIMATE.csv')
     df.columns = [c.lower() for c in df.columns]
     
-    # Sécurité colonnes
-    expected = ['genres', 'keywords', 'director', 'cast', 'all_themes', 'overview', 'name', 'category']
-    for c in expected:
+    # Sécurité colonnes et remplissage des vides
+    for c in ['genres', 'keywords', 'director', 'cast', 'all_themes', 'overview', 'name', 'category']:
         if c not in df.columns: df[c] = ""
         df[c] = df[c].fillna('').astype(str)
 
@@ -72,7 +63,7 @@ def load_data():
     
     df['search_label'] = df['name'] + " (" + df['year'].apply(lambda x: str(x).replace('.0', '')) + ")"
     
-    # Algorithme : Keywords (x5) / Thèmes (x2)
+    # Algo : Keywords prioritaires (x5) et Thèmes secondaires (x2)
     def create_soup(x):
         return ((x['keywords'] + " ") * 5 + (x['all_themes'] + " ") * 2 + (x['genres'] + " ") * 2 + x['director'] + " " + x['cast']).lower()
 
@@ -115,7 +106,43 @@ selected_labels = st.multiselect(
 if selected_labels:
     results = get_combined_recs(selected_labels)
     st.write("---")
-    
     col1, col2, col3 = st.columns(3)
     
-    def draw_
+    def draw_movie(category, cat_filter, col):
+        recs = results[results['category'].str.lower() == cat_filter.lower()]
+        if len(recs) > st.session_state.offset:
+            movie = recs.iloc[st.session_state.offset]
+            url = movie['film_url'] if 'film_url' in movie and movie['film_url'] != "" else "#"
+            img = movie['poster_url'] if movie['poster_url'] != "" else "https://via.placeholder.com/150x225"
+
+            with col:
+                st.subheader(category)
+                st.markdown(f'''
+                    <a href="{url}" target="_blank" style="text-decoration:none;">
+                        <center>
+                            <img src="{img}" class="poster-img">
+                            <h4 style="margin-top:10px;">{movie['name']}</h4>
+                        </center>
+                    </a>
+                    <p>{str(movie['year'])[:4]} | ⭐ {movie['rating']}</p>
+                ''', unsafe_allow_html=True)
+                
+                if movie['overview'] != "":
+                    st.markdown(f'<div class="desc-box"><p>{movie['overview'][:200]}...</p></div>', unsafe_allow_html=True)
+        else:
+            col.warning(f"Plus de {category}.")
+
+    draw_movie("LA VALEUR SÛRE", "Blockbuster", col1)
+    draw_movie("LE CHOIX CULTE", "Culte", col2)
+    draw_movie("LA PÉPITE", "Pépite", col3)
+
+    st.write("---")
+    
+    # Bouton de rafraîchissement centré
+    _, mid, _ = st.columns([1, 1, 1])
+    with mid:
+        if st.button("🔄 Voir d'autres résultats"):
+            st.session_state.offset += 1
+            st.rerun()
+else:
+    st.info("Choisis tes films pour générer ta Triade.")
