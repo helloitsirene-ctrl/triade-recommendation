@@ -14,25 +14,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- CHARGEMENT OPTIMISÉ ET CORRIGÉ ---
+# --- CHARGEMENT (Avec nouveau nom pour casser le cache) ---
 @st.cache_data
-def load_data():
-    # 1. Chargement du fichier
+def load_data_FORCE_RESET():
+    # 1. Chargement
     try:
         df = pd.read_csv('Triade_TAGGED_SOUP_V2.csv')
     except:
         df = pd.read_csv('Triade_TAGGED_SOUP.csv')
     
-    # 2. NETTOYAGE DES NOMS DE COLONNES (Tout en minuscule)
-    # Ça règle les problèmes de 'Watches' vs 'watches'
+    # 2. Nettoyage colonnes
     df.columns = [c.lower() for c in df.columns]
     
-    # 3. CRÉATION DE LA COLONNE 'YEAR' MANQUANTE
-    # Si on a 'date' mais pas 'year', on extrait l'année (les 4 premiers chiffres)
+    # 3. Réparation de l'année
     if 'year' not in df.columns and 'date' in df.columns:
+        # On prend les 4 premiers caractères de la date (ex: 2023-01-01 -> 2023)
         df['year'] = df['date'].astype(str).str[:4]
     
-    # Sécurité : si jamais l'année est vide, on met 0
+    # Conversion en nombre pour être sûr
     if 'year' in df.columns:
         df['year'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
 
@@ -42,19 +41,19 @@ def load_data():
 @st.cache_resource
 def prepare_vectorizer(df):
     count = CountVectorizer(stop_words='english')
-    # On crée juste la matrice des mots, c'est léger
     count_matrix = count.fit_transform(df['soup'])
     return count_matrix
 
 try:
-    df = load_data()
+    # On appelle la nouvelle fonction
+    df = load_data_FORCE_RESET()
     count_matrix = prepare_vectorizer(df)
     indices = pd.Series(df.index, index=df['name'].str.lower()).drop_duplicates()
 except Exception as e:
     st.error(f"Erreur de chargement : {e}")
     st.stop()
 
-# --- MOTEUR LÉGER (Calcul à la demande) ---
+# --- MOTEUR LÉGER ---
 def get_recommendations(title):
     title = title.lower()
     if title not in indices: return None
@@ -62,15 +61,11 @@ def get_recommendations(title):
     idx = indices[title]
     if isinstance(idx, pd.Series): idx = idx.iloc[0]
 
-    # --- C'EST ICI QUE ÇA CHANGE ---
-    # On calcule la similarité UNIQUEMENT entre le film choisi et les autres
-    # Ça prend 0.1 seconde et presque pas de RAM
     cosine_sim = cosine_similarity(count_matrix[idx], count_matrix)
     
-    # On récupère les scores (c'est une liste maintenant, plus une matrice)
     sim_scores = list(enumerate(cosine_sim[0]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_scores = sim_scores[1:61] # Top 60
+    sim_scores = sim_scores[1:61]
     
     movie_indices = [i[0] for i in sim_scores]
     return df.iloc[movie_indices]
@@ -79,8 +74,12 @@ def get_recommendations(title):
 def display_card(category_name, description, df_results, category_filter, emoji, metric_col, metric_label):
     st.markdown(f"### {emoji} {category_name}")
     st.caption(description)
-    rec = df_results[df_results['Category'] == category_filter].head(1)
+    rec = df_results[df_results['category'] == category_filter].head(1) # Attention majuscule ici aussi
     
+    # Fallback si 'Category' avec majuscule
+    if rec.empty:
+        rec = df_results[df_results['Category'] == category_filter].head(1)
+
     if not rec.empty:
         film = rec.iloc[0]
         url = film['film_url'] if 'film_url' in film else "#"
@@ -102,8 +101,13 @@ def display_card(category_name, description, df_results, category_filter, emoji,
         st.warning(f"Pas de {category_name} similaire trouvé.")
 
 # --- INTERFACE ---
-st.title("🎬 LA TRIADE")
-st.write("Le moteur de recommandation intelligent.")
+st.title("🎬 LA TRIADE (Reset)")
+
+# DEBUG : Vérification visuelle pour toi
+if 'year' in df.columns:
+    st.success(f"✅ Colonne 'year' détectée ! (Exemple: {df['year'].iloc[0]})")
+else:
+    st.error("❌ La colonne 'year' manque encore !")
 
 selected_movie = st.selectbox("Tu as aimé quel film ?", df['name'].sort_values().unique())
 
