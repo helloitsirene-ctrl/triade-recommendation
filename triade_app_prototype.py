@@ -10,34 +10,38 @@ st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 st.markdown(f"""
 <style>
     .stApp {{ background-color: #445566; }}
-    h1, h2, h3, h4, h5, p, span {{ color: white !important; text-align: left; }}
+    h1, h2, h3, h4, h5, p, span {{ color: white !important; }}
     
-    /* Conteneur pour chaque ligne de film */
+    /* Conteneur horizontal pour chaque film */
     .movie-row {{
         display: flex;
         align-items: flex-start;
         background-color: rgba(255, 255, 255, 0.05);
-        padding: 20px;
+        padding: 25px;
         border-radius: 15px;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
         border: 1px solid rgba(255, 255, 255, 0.1);
     }}
     
     .poster-container {{
         flex: 0 0 150px;
-        margin-right: 25px;
+        margin-right: 30px;
         text-align: center;
     }}
 
     .info-container {{
         flex: 1;
+        text-align: left;
     }}
 
     .poster-img {{
         width: 150px;
         border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        transition: transform 0.2s;
     }}
+    
+    .poster-img:hover {{ transform: scale(1.03); }}
 
     .description-text {{
         font-size: 0.95rem;
@@ -53,13 +57,20 @@ st.markdown(f"""
         margin-top: 5px;
     }}
 
+    /* Bouton Refresh centré */
+    .stButton {{
+        text-align: center;
+    }}
+    
     .stButton>button {{
         background-color: #FF4B4B !important;
         color: white !important;
         border-radius: 20px;
-        display: block;
-        margin: 0 auto;
+        padding: 12px 40px;
+        font-weight: bold;
     }}
+    
+    a {{ text-decoration: none !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -68,8 +79,9 @@ def load_data():
     df = pd.read_csv('Triade_ULTIMATE.csv')
     df.columns = [c.lower().strip() for c in df.columns]
     
-    # Sécurité colonnes
-    expected = ['genres', 'keywords', 'director', 'cast', 'all_themes', 'overview', 'name', 'category', 'runtime']
+    # --- SÉCURITÉ COLONNES ---
+    # On utilise 'description' au lieu d'overview
+    expected = ['genres', 'keywords', 'director', 'cast', 'all_themes', 'description', 'name', 'category', 'runtime']
     for c in expected:
         if c not in df.columns: df[c] = ""
         df[c] = df[c].fillna('')
@@ -79,28 +91,23 @@ def load_data():
     
     df['search_label'] = df['name'].astype(str) + " (" + df['year'].astype(str).str.replace('.0', '', regex=False) + ")"
     
-    # Algo : Keywords (x5) / Thèmes (x2)
+    # Algo : Keywords prioritaires (x5) / Thèmes (x2)
     def create_soup(x):
         return ((str(x['keywords']) + " ") * 5 + (str(x['all_themes']) + " ") * 2 + (str(x['genres']) + " ") * 2 + str(x['director']) + " " + str(x['cast'])).lower()
 
     df['soup'] = df.apply(create_soup, axis=1)
     return df
 
-# Fonction pour convertir les minutes en HhMM
 def format_runtime(minutes):
     try:
         m = int(float(minutes))
-        if m == 0: return ""
-        hours = m // 60
-        mins = m % 60
-        return f"{hours}h{mins:02d}"
+        if m <= 0: return "Durée inconnue"
+        return f"{m // 60}h{m % 60:02d}"
     except:
         return ""
 
-# Fonction pour nettoyer le cast (prendre les 3 premiers)
 def clean_cast(cast_str):
-    if not cast_str: return ""
-    # Enlève les crochets et guillemets si présents
+    if not cast_str: return "Non spécifié"
     clean = re.sub(r"[\[\]']", "", cast_str)
     items = [i.strip() for i in clean.split(',')]
     return ", ".join(items[:3])
@@ -118,4 +125,31 @@ def get_combined_recs(search_labels):
         idx = indices[label]
         actual_idx = idx.iloc[0] if hasattr(idx, 'iloc') else idx
         selected_indices.append(actual_idx)
-        cos_sim = cosine_similarity(count_matrix
+        
+        # --- FIX SYNTAXE ICI ---
+        cos_sim = cosine_similarity(count_matrix[actual_idx], count_matrix)[0]
+        
+        if all_sim_scores is None:
+            all_sim_scores = cos_sim
+        else:
+            all_sim_scores += cos_sim
+    
+    sim_scores = sorted(list(enumerate(all_sim_scores)), key=lambda x: x[1], reverse=True)
+    movie_indices = [i[0] for i in sim_scores if i[0] not in selected_indices]
+    return df.iloc[movie_indices[0:150]]
+
+# --- INTERFACE ---
+st.markdown("<h1 style='text-align:center;'>🎬 La Triade</h1>", unsafe_allow_html=True)
+
+selected_labels = st.multiselect("Tape tes films favoris (max 4) :", options=df['search_label'].sort_values().unique().tolist(), max_selections=4)
+
+if selected_labels:
+    results = get_combined_recs(selected_labels)
+    st.write("---")
+    
+    def display_movie_row(category, cat_filter):
+        recs = results[results['category'].str.lower() == cat_filter.lower()]
+        if len(recs) > st.session_state.offset:
+            movie = recs.iloc[st.session_state.offset]
+            url = movie['film_url'] if 'film_url' in movie and movie['film_url'] != "" else "#"
+            img = movie['poster_url'] if movie['poster_url'] != "" else "
