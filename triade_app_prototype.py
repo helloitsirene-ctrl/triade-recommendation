@@ -14,28 +14,39 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- CHARGEMENT (Avec nouveau nom pour casser le cache) ---
+# --- CHARGEMENT ET RÉPARATION DES DONNÉES ---
 @st.cache_data
-def load_data_FORCE_RESET():
+def load_data_FINAL():
     # 1. Chargement
     try:
         df = pd.read_csv('Triade_TAGGED_SOUP_V2.csv')
     except:
         df = pd.read_csv('Triade_TAGGED_SOUP.csv')
     
-    # 2. Nettoyage colonnes
+    # 2. Tout en minuscules (Sécurité absolue)
     df.columns = [c.lower() for c in df.columns]
     
-    # 3. Réparation de l'année
+    # 3. Réparation de l'année (Ta correction)
     if 'year' not in df.columns and 'date' in df.columns:
-        # On prend les 4 premiers caractères de la date (ex: 2023-01-01 -> 2023)
         df['year'] = df['date'].astype(str).str[:4]
-    
-    # Conversion en nombre pour être sûr
     if 'year' in df.columns:
         df['year'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
 
-    df['soup'] = df['soup'].fillna('')
+    # 4. RÉPARATION DE LA SOUPE (Anti-Bug Barbie) 🍲
+    # On s'assure que les colonnes existent, sinon on met du vide
+    cols_to_check = ['genres', 'keywords', 'director', 'cast']
+    for col in cols_to_check:
+        if col not in df.columns: df[col] = ''
+        else: df[col] = df[col].fillna('').astype(str)
+
+    # On recrée la soupe pondérée DIRECTEMENT ICI
+    def repair_soup(x):
+        # Genres et Keywords comptent TRIPLE (x3)
+        soup = (x['genres'] + " ") * 3 + (x['keywords'] + " ") * 3 + x['director'] + " " + x['cast']
+        return soup.lower()
+
+    df['soup'] = df.apply(repair_soup, axis=1)
+    
     return df
 
 @st.cache_resource
@@ -45,15 +56,15 @@ def prepare_vectorizer(df):
     return count_matrix
 
 try:
-    # On appelle la nouvelle fonction
-    df = load_data_FORCE_RESET()
+    # On lance le chargement blindé
+    df = load_data_FINAL()
     count_matrix = prepare_vectorizer(df)
     indices = pd.Series(df.index, index=df['name'].str.lower()).drop_duplicates()
 except Exception as e:
-    st.error(f"Erreur de chargement : {e}")
+    st.error(f"Gros problème de chargement : {e}")
     st.stop()
 
-# --- MOTEUR LÉGER ---
+# --- MOTEUR ---
 def get_recommendations(title):
     title = title.lower()
     if title not in indices: return None
@@ -61,24 +72,29 @@ def get_recommendations(title):
     idx = indices[title]
     if isinstance(idx, pd.Series): idx = idx.iloc[0]
 
+    # Calcul de similarité
     cosine_sim = cosine_similarity(count_matrix[idx], count_matrix)
     
     sim_scores = list(enumerate(cosine_sim[0]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    
+    # On prend le top 60 (en ignorant le film lui-même à l'index 0)
     sim_scores = sim_scores[1:61]
     
     movie_indices = [i[0] for i in sim_scores]
     return df.iloc[movie_indices]
 
-# --- AFFICHAGE CARTE ---
+# --- AFFICHAGE ---
 def display_card(category_name, description, df_results, category_filter, emoji, metric_col, metric_label):
     st.markdown(f"### {emoji} {category_name}")
     st.caption(description)
-    rec = df_results[df_results['category'] == category_filter].head(1) # Attention majuscule ici aussi
     
-    # Fallback si 'Category' avec majuscule
-    if rec.empty:
-        rec = df_results[df_results['Category'] == category_filter].head(1)
+    # On cherche dans la colonne 'category' (minuscule car on a tout converti au début)
+    rec = df_results[df_results['category'] == category_filter].head(1)
+    
+    # Fallback majuscule au cas où
+    if rec.empty and 'Category' in df_results.columns:
+         rec = df_results[df_results['Category'] == category_filter].head(1)
 
     if not rec.empty:
         film = rec.iloc[0]
@@ -101,23 +117,22 @@ def display_card(category_name, description, df_results, category_filter, emoji,
         st.warning(f"Pas de {category_name} similaire trouvé.")
 
 # --- INTERFACE ---
-st.title("🎬 LA TRIADE (Reset)")
-
-# DEBUG : Vérification visuelle pour toi
-if 'year' in df.columns:
-    st.success(f"✅ Colonne 'year' détectée ! (Exemple: {df['year'].iloc[0]})")
-else:
-    st.error("❌ La colonne 'year' manque encore !")
+st.title("🎬 LA TRIADE")
 
 selected_movie = st.selectbox("Tu as aimé quel film ?", df['name'].sort_values().unique())
 
 if st.button('Lancer la recherche'):
-    with st.spinner('Calcul en cours...'):
+    
+    # PETIT DEBUGGER VISUEL (Pour vérifier que Barbie n'est pas là par erreur)
+    # st.write(f"Recherche lancée pour : {selected_movie}") 
+    
+    with st.spinner('Analyse de la soupe en cours...'):
         results = get_recommendations(selected_movie)
     
     if results is not None:
         st.write("---")
         st.subheader(f"Recommandations pour *{selected_movie}* :")
+        
         col1, col2, col3 = st.columns(3)
         with col1: display_card("LA VALEUR SÛRE", "(Blockbuster)", results, 'Blockbuster', "🏛️", 'watches', "Vues")
         with col2: display_card("LE CHOIX CULTE", "(Cinéphiles)", results, 'Culte', "🎸", 'watches', "Vues")
