@@ -29,7 +29,7 @@ st.markdown(f"""
         margin-bottom: 30px;
     }}
     
-    /* Centrage forcé de chaque colonne */
+    /* Centrage forcé des colonnes et de leur contenu */
     [data-testid="column"] {{
         display: flex;
         flex-direction: column;
@@ -37,14 +37,12 @@ st.markdown(f"""
         text-align: center;
     }}
 
-    /* CENTRAGE DU POSTER */
     .poster-img {{
         width: 160px;
         border-radius: 8px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.6);
         display: block;
-        margin-left: auto;
-        margin-right: auto;
+        margin: 0 auto;
     }}
 
     .movie-title {{
@@ -67,6 +65,7 @@ st.markdown(f"""
         font-size: 0.88rem;
         text-align: justify !important;
         line-height: 1.4;
+        margin: 0;
     }}
 
     .credits-text {{
@@ -76,11 +75,11 @@ st.markdown(f"""
         opacity: 0.8;
     }}
 
-    /* CENTRAGE ABSOLU DU BOUTON REFRESH */
+    /* CENTRAGE DU BOUTON REFRESH */
     .stButton {{
-        text-align: center;
         display: flex;
         justify-content: center;
+        width: 100%;
         margin: 40px 0;
     }}
     
@@ -92,19 +91,28 @@ st.markdown(f"""
         font-family: 'Bebas Neue';
         font-size: 1.6rem;
         border: none;
-        margin: 0 auto !important; /* Force le centrage */
-        display: block !important;
     }}
     
-    /* Couleur barre de recherche */
+    /* Barre de recherche */
     div[data-baseweb="select"] > div {{
         background-color: {DESC_BG} !important;
     }}
 </style>
 """, unsafe_allow_html=True)
 
+# Fonction de nettoyage pour limiter le cast à 3 personnes
+def clean_credits(text, is_cast=False):
+    if not text or text == "" or str(text).lower() == "nan": return "Non spécifié"
+    # Nettoyage des crochets/guillemets résiduels
+    clean = re.sub(r"[\[\]'\"()]", "", str(text))
+    if is_cast:
+        items = [i.strip() for i in clean.split(',')]
+        return ", ".join(items[:3])
+    return clean
+
 @st.cache_data
 def load_data():
+    # Utilisation de ton nouveau fichier propre
     df = pd.read_csv('Triade_ULTIMATE_CLEAN.csv')
     df.columns = [c.lower().strip() for c in df.columns]
     for c in ['director', 'cast', 'description', 'minute', 'name', 'category']:
@@ -113,6 +121,7 @@ def load_data():
     if 'year' not in df.columns and 'date' in df.columns:
         df['year'] = df['date'].astype(str).str[:4]
     df['search_label'] = df['name'].astype(str) + " (" + df['year'].astype(str).str.replace('.0', '', regex=False) + ")"
+    # Soupe pour l'algorithme uniquement
     df['soup'] = df.apply(lambda x: (str(x['keywords'])+" ")*5 + (str(x['all_themes'])+" ")*2 + (str(x['genres'])+" ")*2 + str(x['director'])+" "+str(x['cast']).lower(), axis=1)
     return df
 
@@ -162,21 +171,25 @@ if selected_labels:
                 
                 year = str(movie['year'])[:4]
                 try:
-                    time = f"{int(float(movie['minute']))} min" if movie['minute'] != "" else ""
+                    # Conversion propre de la durée
+                    time_val = float(movie['minute']) if movie['minute'] != "" else 0
+                    time = f"{int(time_val)} min" if time_val > 0 else ""
                 except:
                     time = ""
-                st.markdown(f"<p style='font-size:0.9rem; opacity:0.8; color:white;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
+                
+                st.markdown(f"<p style='font-size:0.9rem; opacity:0.8; color:white; text-align:center;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
                 
                 st.markdown(f'<div class="desc-container"><p>{movie["description"][:280]}...</p></div>', unsafe_allow_html=True)
                 
-                st.markdown(f"<p class='credits-text'><b>Director:</b> {movie['director']}</p>", unsafe_allow_html=True)
-                st.markdown(f"<p class='credits-text'><b>Cast:</b> {movie['cast']}</p>", unsafe_allow_html=True)
+                # Affichage des crédits (limité à 3 pour le cast)
+                st.markdown(f"<p class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
 
     draw_movie("LA VALEUR SÛRE", "Blockbuster", col1, HIGHLIGHT_ORANGE)
     draw_movie("LE CHOIX CULTE", "Culte", col2, HIGHLIGHT_BLUE)
     draw_movie("LA PÉPITE", "Pépite", col3, HIGHLIGHT_GREEN)
 
-    # Bouton rafraîchir
+    # Bouton rafraîchir centré
     if st.button("VOIR D'AUTRES RÉSULTATS"):
         st.session_state.offset += 1
         st.rerun()
