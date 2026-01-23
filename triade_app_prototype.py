@@ -7,49 +7,52 @@ import re
 # --- CONFIGURATION PAGE ---
 st.set_page_config(page_title="La Triade", page_icon="🎬", layout="wide")
 
+# CSS pour forcer l'apparence
 st.markdown(f"""
 <style>
     .stApp {{
         background-color: #445566;
     }}
-    h1, h2, h3, h4, h5, p, span, label {{
+    /* Tout le texte de base en blanc */
+    h1, h2, h3, h4, h5, p, span {{
         color: white !important;
-        text-align: center;
     }}
-    /* Correction visibilité bouton */
-    .stButton>button {{
-        border-radius: 20px;
-        background-color: #ff4b4b !important; /* Rouge vif */
-        color: white !important;
-        border: none;
-        padding: 12px 24px;
-        display: block;
-        margin: 0 auto; /* Centrage automatique */
-        font-weight: bold;
-    }}
-    /* Alignement colonnes */
+    /* Centrage des colonnes Streamlit */
     [data-testid="column"] {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
         text-align: center;
     }}
-    .movie-poster {{
-        border-radius: 10px;
-        width: 150px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    }}
-    /* Description : Gris très clair pour éviter le blanc sur blanc */
-    .description-text {{
+    /* Style spécifique pour la description (fond clair, texte noir) */
+    .desc-box {{
+        background-color: #f8f9fa;
+        color: #333333 !important;
+        padding: 10px;
+        border-radius: 8px;
         font-size: 0.85rem;
-        font-style: italic;
         margin-top: 10px;
-        max-width: 240px;
-        color: #e0e0e0 !important; 
+        text-align: justify;
         line-height: 1.3;
-        text-align: center;
     }}
-    a {{ text-decoration: none !important; }}
+    .desc-box p {{
+        color: #333333 !important;
+        margin: 0;
+    }}
+    /* Le bouton Refresh */
+    .stButton>button {{
+        background-color: #FF4B4B !important;
+        color: white !important;
+        font-weight: bold;
+        border-radius: 20px;
+        padding: 10px 30px;
+        border: none;
+    }}
+    .movie-link {{
+        text-decoration: none;
+    }}
+    .poster-img {{
+        width: 150px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -101,10 +104,10 @@ def get_combined_recs(search_labels):
     return df.iloc[movie_indices[0:150]]
 
 # --- INTERFACE ---
-st.markdown("<h1>🎬 La Triade</h1>", unsafe_allow_html=True)
+st.markdown("<center><h1>🎬 La Triade</h1></center>", unsafe_allow_html=True)
 
 selected_labels = st.multiselect(
-    "Films favoris (max 4) :",
+    "Quels films as-tu aimés ? (max 4)",
     options=df['search_label'].sort_values().unique().tolist(),
     max_selections=4
 )
@@ -112,37 +115,7 @@ selected_labels = st.multiselect(
 if selected_labels:
     results = get_combined_recs(selected_labels)
     st.write("---")
+    
     col1, col2, col3 = st.columns(3)
     
-    def draw_movie(category, cat_filter, col):
-        recs = results[results['category'].str.lower() == cat_filter.lower()]
-        if len(recs) > st.session_state.offset:
-            movie = recs.iloc[st.session_state.offset]
-            url = movie['film_url'] if 'film_url' in movie and movie['film_url'] != "" else "#"
-            img = movie['poster_url'] if movie['poster_url'] != "" else "https://via.placeholder.com/150x225"
-
-            with col:
-                st.markdown(f"### {category}")
-                # Poster et Titre Cliquables
-                st.markdown(f'''
-                    <a href="{url}" target="_blank">
-                        <img src="{img}" class="movie-poster">
-                        <h4 style="margin:10px 0 5px 0; font-size:1.1rem;">{movie['name']}</h4>
-                    </a>
-                    <p style="margin-bottom:10px;">{str(movie['year'])[:4]} | ⭐ {movie['rating']}</p>
-                ''', unsafe_allow_html=True)
-                
-                # Description forcée en gris clair
-                if movie['overview'] != "":
-                    desc = movie['overview'][:160] + "..." if len(movie['overview']) > 160 else movie['overview']
-                    st.markdown(f'<p class="description-text">{desc}</p>', unsafe_allow_html=True)
-        else:
-            col.warning(f"Plus de {category}.")
-
-    draw_movie("LA VALEUR SÛRE", "Blockbuster", col1)
-    draw_movie("LE CHOIX CULTE", "Culte", col2)
-    draw_movie("LA PÉPITE", "Pépite", col3)
-
-    st.write("---")
-    # Centrage du bouton via colonnes vides
-    _, btn_space, _ = st.columns([1, 1, 1])
+    def draw_
