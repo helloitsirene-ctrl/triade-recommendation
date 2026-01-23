@@ -207,7 +207,7 @@ if selected_labels:
                 st.markdown(f"<div class='info-line'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</div>", unsafe_allow_html=True)
                 
                 # Description
-                st.markdown(f'<div class="desc-container"><p>{movie["description"][:280]}...</p></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="desc-container"><p>{movie["description"]}</p></div>', unsafe_allow_html=True)
                 
                 # Crédits
                 st.markdown(f"<div class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</div>", unsafe_allow_html=True)
