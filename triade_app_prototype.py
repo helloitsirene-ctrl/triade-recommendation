@@ -14,15 +14,28 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- CHARGEMENT OPTIMISÉ ---
+# --- CHARGEMENT OPTIMISÉ ET CORRIGÉ ---
 @st.cache_data
 def load_data():
-    # On essaie les deux noms de fichiers au cas où
+    # 1. Chargement du fichier
     try:
         df = pd.read_csv('Triade_TAGGED_SOUP_V2.csv')
     except:
         df = pd.read_csv('Triade_TAGGED_SOUP.csv')
     
+    # 2. NETTOYAGE DES NOMS DE COLONNES (Tout en minuscule)
+    # Ça règle les problèmes de 'Watches' vs 'watches'
+    df.columns = [c.lower() for c in df.columns]
+    
+    # 3. CRÉATION DE LA COLONNE 'YEAR' MANQUANTE
+    # Si on a 'date' mais pas 'year', on extrait l'année (les 4 premiers chiffres)
+    if 'year' not in df.columns and 'date' in df.columns:
+        df['year'] = df['date'].astype(str).str[:4]
+    
+    # Sécurité : si jamais l'année est vide, on met 0
+    if 'year' in df.columns:
+        df['year'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
+
     df['soup'] = df['soup'].fillna('')
     return df
 
