@@ -21,6 +21,7 @@ st.markdown(f"""
 
     .stApp {{ background-color: {APP_BG}; }}
     
+    /* Titre Principal */
     h1 {{ 
         font-family: 'Bebas Neue', cursive; 
         font-size: 5rem !important; 
@@ -29,19 +30,18 @@ st.markdown(f"""
         margin-bottom: 20px;
     }}
     
-    /* Correction couleur barre de recherche */
+    /* Centrage de la barre de recherche */
+    .stMultiSelect {{
+        max-width: 800px;
+        margin: 0 auto !important;
+    }}
+    
     div[data-baseweb="select"] > div {{
         background-color: {DESC_BG} !important;
         color: white !important;
     }}
-    
-    /* Tags de sélection (films choisis) */
-    span[data-baseweb="tag"] {{
-        background-color: #455a64 !important;
-        color: white !important;
-    }}
 
-    /* Alignement vertical des colonnes de films */
+    /* Alignement des colonnes de films */
     [data-testid="column"] {{
         display: flex;
         flex-direction: column;
@@ -49,6 +49,7 @@ st.markdown(f"""
         text-align: center;
     }}
 
+    /* Centrage Posters */
     .poster-img {{
         width: 160px;
         border-radius: 8px;
@@ -78,24 +79,29 @@ st.markdown(f"""
         line-height: 1.4;
     }}
 
-    .credits-text {{
-        font-size: 0.75rem;
-        color: white !important;
-        margin: 2px 0;
-        opacity: 0.8;
+    /* BOUTON RELOAD CARRÉ ET CENTRÉ */
+    .stButton {{
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
     }}
-
-    /* STYLE DU BOUTON (Version ligne de recherche) */
+    
     .stButton > button {{
         background-color: {HIGHLIGHT_ORANGE} !important;
         color: white !important;
-        border-radius: 5px;
-        padding: 10px 20px !important;
-        font-family: 'Bebas Neue';
-        font-size: 1.2rem;
+        border-radius: 8px; /* Carré légèrement arrondi */
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem !important;
         border: none;
-        width: 100%;
-        margin-top: 28px; /* Aligne avec le champ de texte */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+    }}
+    
+    .stButton > button:hover {{
+        transform: rotate(90deg);
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -143,24 +149,18 @@ def get_combined_recs(search_labels):
 # --- INTERFACE ---
 st.markdown("<h1>LA TRIADE</h1>", unsafe_allow_html=True)
 
-# Barre de recherche et bouton sur la même ligne
-col_search, col_btn = st.columns([4, 1])
+selected_labels = st.multiselect(
+    "RECHERCHE TES FILMS FAVORIS :",
+    options=df['search_label'].sort_values().unique().tolist(),
+    max_selections=4
+)
 
-with col_search:
-    selected_labels = st.multiselect(
-        "RECHERCHE TES FILMS FAVORIS :",
-        options=df['search_label'].sort_values().unique().tolist(),
-        max_selections=4
-    )
-
-with col_btn:
-    # On affiche le bouton seulement si des films sont sélectionnés
-    refresh = st.button("AUTRE TRIADE")
-    if refresh:
+# Affichage du bouton de reload centré si des films sont choisis
+if selected_labels:
+    if st.button("🔄"):
         st.session_state.offset += 1
         st.rerun()
 
-if selected_labels:
     results = get_combined_recs(selected_labels)
     st.write("---")
     c1, c2, c3 = st.columns(3)
@@ -184,8 +184,8 @@ if selected_labels:
                 
                 st.markdown(f"<p style='font-size:0.9rem; opacity:0.8;'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</p>", unsafe_allow_html=True)
                 st.markdown(f'<div class="desc-container"><p>{movie["description"][:280]}...</p></div>', unsafe_allow_html=True)
-                st.markdown(f"<p class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
-                st.markdown(f"<p class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='font-size:0.75rem; color:white; opacity:0.8;'><b>Director:</b> {clean_credits(movie['director'])}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='font-size:0.75rem; color:white; opacity:0.8;'><b>Cast:</b> {clean_credits(movie['cast'], True)}</p>", unsafe_allow_html=True)
 
     draw_movie("LA VALEUR SÛRE", "Blockbuster", c1, HIGHLIGHT_ORANGE)
     draw_movie("LE CHOIX CULTE", "Culte", c2, HIGHLIGHT_BLUE)
