@@ -19,7 +19,7 @@ st.markdown("""
 def load_data_FINAL():
     # 1. Chargement
     try:
-        df = pd.read_csv('Triade_TAGGED_SOUP_V2.csv')
+        df = pd.read_csv('Triade_ULTIMATE.csv')
     except:
         df = pd.read_csv('Triade_TAGGED_SOUP.csv')
     
