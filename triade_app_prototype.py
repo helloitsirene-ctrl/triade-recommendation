@@ -48,7 +48,7 @@ st.markdown(f"""
         color: white !important;
         border-radius: 8px;
         width: 50px;
-        height: 48px;
+        height: 40px;
         font-size: 1.5rem !important;
         border: none;
         margin-top: 28px;
@@ -95,6 +95,8 @@ st.markdown(f"""
         border-radius: 8px;
         margin: 15px auto;
         width: 90%;
+        height: auto; /* Permet à la boîte de grandir selon le texte */
+        min-height: 100px; /* Optionnel : garde une taille mini pour l'alignement */
     }}
     
     .desc-container p {{
@@ -104,6 +106,7 @@ st.markdown(f"""
         line-height: 1.4;
         margin: 0;
     }}
+
 
     .credits-text {{
         font-size: 1.0rem;
