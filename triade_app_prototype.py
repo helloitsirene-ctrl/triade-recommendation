@@ -177,6 +177,39 @@ with c_btn:
         st.session_state.offset += 1
         st.rerun()
 
+# --- SIDEBAR POUR LES FILRES ---
+with st.sidebar:
+    st.markdown("### 🔍 FILTRER MA TRIADE")
+    
+    # Aide sur le nombre de films
+    st.info("💡 Conseil : Sélectionne 3 films pour une précision optimale.")
+    
+    # Filtre de Genres
+    all_genres = sorted(list(set([g.strip() for sublist in df['genres'].str.split(',') for g in sublist if g])))
+    selected_genres = st.multiselect("Genres préférés :", all_genres)
+    
+    # Filtre de Durée
+    duration_choice = st.radio("Durée du film :", 
+                              ["Peu importe", "Court (< 90 min)", "Moyen (90-130 min)", "Long (> 130 min)"])
+
+# --- MISE À JOUR DE LA FONCTION DE RECO ---
+def apply_filters(results_df):
+    filtered = results_df.copy()
+    
+    # Appliquer les genres
+    if selected_genres:
+        filtered = filtered[filtered['genres'].apply(lambda x: any(g in x for g in selected_genres))]
+    
+    # Appliquer la durée
+    if duration_choice == "Court (< 90 min)":
+        filtered = filtered[filtered['minute'].astype(float) < 90]
+    elif duration_choice == "Moyen (90-130 min)":
+        filtered = filtered[(filtered['minute'].astype(float) >= 90) & (filtered['minute'].astype(float) <= 130)]
+    elif duration_choice == "Long (> 130 min)":
+        filtered = filtered[filtered['minute'].astype(float) > 130]
+        
+    return filtered
+
 if selected_labels:
     results = get_combined_recs(selected_labels)
     st.write("---")
@@ -219,3 +252,15 @@ if selected_labels:
 
 else:
     st.info("Sélectionne des films pour découvrir ta Triade.")
+
+st.write("---")
+st.markdown("""
+<div style="opacity: 0.6; font-size: 0.85rem; text-align: justify; padding: 20px;">
+    <strong>Comment est générée votre Triade ?</strong><br><br>
+    Chaque recommandation est issue d'une analyse sémantique (NLP) croisant thèmes, keywords et équipe technique. 
+    Les films sont ensuite segmentés selon leur impact sur la communauté Letterboxd :<br><br>
+    • 🟠 <strong>La Valeur Sûre</strong> : Plus de 450 000 spectateurs. Un succès incontournable.<br>
+    • 🔵 <strong>Le Choix Culte</strong> : Entre 50 000 et 450 000 spectateurs, avec une surperformance du ratio de "likes".<br>
+    • 🟢 <strong>La Pépite</strong> : Moins de 50 000 spectateurs. Un trésor caché avec un fort taux d'appréciation.
+</div>
+""", unsafe_allow_html=True)
