@@ -123,7 +123,7 @@ st.markdown(f"""
         }}
 
         /* Couleur du petit bouton rond (le "handle") */
-        div[data-baseweb="slider"] > div > div > div > div {[
+        div[data-baseweb="slider"] > div > div > div > div {{
             background-color: #ffffff !important;
             border: 2px solid #00c030 !important;
         }}
