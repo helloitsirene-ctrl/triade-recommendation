@@ -140,8 +140,6 @@ st.markdown(f"""
         }
     </style>
 """, unsafe_allow_html=True)
-</style>
-""", unsafe_allow_html=True)
 
 def clean_credits(text, is_cast=False):
     if not text or text == "" or str(text).lower() == "nan": return "Non spécifié"
