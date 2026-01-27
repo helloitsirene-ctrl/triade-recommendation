@@ -118,26 +118,26 @@ st.markdown(f"""
     }}
 
         /* Couleur de la barre du slider (la partie sélectionnée) */
-        div[data-baseweb="slider"] > div > div > div {
+        div[data-baseweb="slider"] > div > div > div {{
             background-color: #00c030 !important; /* Vert Letterboxd par défaut */
-        }
+        }}
 
         /* Couleur du petit bouton rond (le "handle") */
-        div[data-baseweb="slider"] > div > div > div > div {
+        div[data-baseweb="slider"] > div > div > div > div {[
             background-color: #ffffff !important;
             border: 2px solid #00c030 !important;
-        }
+        }}
         
         /* Couleur des étiquettes (labels) du select_slider pour la durée */
-        div[data-testid="stWidgetLabel"] p {
+        div[data-testid="stWidgetLabel"] p {{
             color: #ffffff !important;
             font-weight: bold;
-        }
+        }}
         
         /* Couleur des options textuelles du slider de durée */
-        div[data-testid="stMarkdownContainer"] p {
+        div[data-testid="stMarkdownContainer"] p {{
             font-size: 0.9rem;
-        }
+        }}
     </style>
 """, unsafe_allow_html=True)
 
