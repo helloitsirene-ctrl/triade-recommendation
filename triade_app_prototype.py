@@ -22,71 +22,47 @@ st.markdown(f"""
 
     .stApp {{ background-color: {APP_BG}; }}
     
-    /* Titre Principal */
     h1 {{ 
         font-family: 'Bebas Neue', cursive; 
         font-size: 5rem !important; 
         color: white !important; 
         text-align: center;
         margin-bottom: 20px;
-        width: 100%;
     }}
 
-    /* BARRE DE RECHERCHE ET TAGS (Gris Clair) */
+    /* --- SLIDERS (RETOUR AUX COULEURS SOBRES) --- */
+    
+    /* La barre du slider (Bleu Letterboxd) */
+    div[data-baseweb="slider"] > div > div > div {{
+        background-color: {HIGHLIGHT_BLUE} !important;
+    }}
+
+    /* Le petit bouton (Handle) : Blanc avec contour bleu */
+    div[data-baseweb="slider"] > div > div > div > div {{
+        background-color: #ffffff !important;
+        border: 2px solid {HIGHLIGHT_BLUE} !important;
+    }}
+    
+    /* Couleur du texte des sliders (Blanc, fini le rouge !) */
+    div[data-testid="stWidgetLabel"] p, 
+    div[data-testid="stMarkdownContainer"] p {{
+        color: white !important;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: normal !important;
+    }}
+
+    /* --- RESTE DE L'INTERFACE --- */
+    
     div[data-baseweb="select"] > div {{
         background-color: {SEARCH_GRAY} !important;
         color: #14181c !important;
-    }}
-    span[data-baseweb="tag"] {{
-        background-color: #b0b0b0 !important;
-        color: #14181c !important;
-    }}
-    
-    /* BOUTON RELOAD À DROITE */
-    .stButton > button {{
-        background-color: {HIGHLIGHT_ORANGE} !important;
-        color: white !important;
-        border-radius: 8px;
-        width: 50px;
-        height: 40px;
-        font-size: 1.5rem !important;
-        border: none;
-        margin-top: 0px;
-    }}
-
-    /* CENTRAGE ABSOLU DES COLONNES */
-    [data-testid="column"] {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        text-align: center;
-    }}
-
-    .poster-img {{
-        width: 160px;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-        margin: 0 auto;
-        display: block;
     }}
 
     .movie-title {{
         font-family: 'Bebas Neue', cursive;
         font-size: 2rem;
         color: {HIGHLIGHT_BLUE} !important;
-        margin-top: 15px;
         text-align: center !important;
-        width: 100%;
-    }}
-
-    .info-line {{
-        text-align: center;
-        width: 100%;
-        color: white;
-        opacity: 0.8;
-        font-size: 0.9rem;
-        margin: 5px 0;
     }}
 
     .desc-container {{
@@ -94,51 +70,13 @@ st.markdown(f"""
         padding: 15px;
         border-radius: 8px;
         margin: 15px auto;
-        width: 90%;
-        height: auto; /* Permet à la boîte de grandir selon le texte */
-        min-height: 100px; /* Optionnel : garde une taille mini pour l'alignement */
     }}
     
     .desc-container p {{
         color: {DESC_TEXT} !important;
-        font-size: 0.88rem;
         text-align: justify !important;
-        line-height: 1.4;
-        margin: 0;
     }}
-
-
-    .credits-text {{
-        font-size: 1.0rem;
-        color: white !important;
-        margin: 2px 0;
-        opacity: 0.9;
-        text-align: center !important;
-        width: 100%;
-    }}
-
-        /* Couleur de la barre du slider (la partie sélectionnée) */
-        div[data-baseweb="slider"] > div > div > div {{
-            background-color: #00c030 !important; /* Vert Letterboxd par défaut */
-        }}
-
-        /* Couleur du petit bouton rond (le "handle") */
-        div[data-baseweb="slider"] > div > div > div > div {{
-            background-color: #ffffff !important;
-            border: 2px solid #00c030 !important;
-        }}
-        
-        /* Couleur des étiquettes (labels) du select_slider pour la durée */
-        div[data-testid="stWidgetLabel"] p {{
-            color: #ffffff !important;
-            font-weight: bold;
-        }}
-        
-        /* Couleur des options textuelles du slider de durée */
-        div[data-testid="stMarkdownContainer"] p {{
-            font-size: 0.9rem;
-        }}
-    </style>
+</style>
 """, unsafe_allow_html=True)
 
 def clean_credits(text, is_cast=False):
