@@ -162,106 +162,102 @@ def get_combined_recs(search_labels):
 # --- INTERFACE ---
 st.markdown("<h1>LA TRIADE</h1>", unsafe_allow_html=True)
 
-# Ligne de recherche et bouton
+# Ligne de recherche et bouton (On garde celle-ci !)
 c_search, c_btn = st.columns([10, 1])
 
 with c_search:
     selected_labels = st.multiselect(
         "RECHERCHE TES FILMS FAVORIS :",
-        options=df['search_label'].sort_values().unique().tolist(),
+        options=df['display_name'].sort_values().unique().tolist(), # Utilise display_name ici pour la cohérence
         max_selections=4
     )
 
 with c_btn:
+    st.markdown("<br>", unsafe_allow_html=True) # Petit ajustement pour aligner le bouton
     if st.button("🔄"):
         st.session_state.offset += 1
         st.rerun()
 
-# --- SIDEBAR POUR LES FILRES ---
-with st.sidebar:
-    st.markdown("### 🔍 FILTRER MA TRIADE")
-    
-    # Aide sur le nombre de films
-    st.info("💡 Conseil : Sélectionne 3 films pour une précision optimale.")
-    
-    # Filtre de Genres
-    all_genres = sorted(list(set([g.strip() for sublist in df['genres'].str.split(',') for g in sublist if g])))
-    selected_genres = st.multiselect("Genres préférés :", all_genres)
-    
-    # Filtre de Durée
-    duration_choice = st.radio("Durée du film :", 
-                              ["Peu importe", "Court (< 90 min)", "Moyen (90-130 min)", "Long (> 130 min)"])
+# --- FILTRES AVANCÉS ---
+with st.expander("⚙️ Filtres avancés"):
+    f_col1, f_col2 = st.columns(2)
+    with f_col1:
+        min_rating = st.slider("Note Letterboxd minimum", 0.0, 5.0, 3.0, 0.5)
+        duration_choice = st.select_slider(
+            "Durée du film",
+            options=["Peu importe", "Court", "Moyen", "Long"],
+            value="Peu importe",
+            help="Court: <90min | Moyen: 90-130min | Long: >130min"
+        )
+    with f_col2:
+        all_genres = sorted(list(set([g.strip() for sublist in df['genres'].str.split(',') for g in sublist if g])))
+        selected_genres = st.multiselect("Genres spécifiques", all_genres)
 
-# --- MISE À JOUR DE LA FONCTION DE RECO ---
-def apply_filters(results_df):
-    filtered = results_df.copy()
-    
-    # Appliquer les genres
-    if selected_genres:
-        filtered = filtered[filtered['genres'].apply(lambda x: any(g in x for g in selected_genres))]
-    
-    # Appliquer la durée
-    if duration_choice == "Court (< 90 min)":
-        filtered = filtered[filtered['minute'].astype(float) < 90]
-    elif duration_choice == "Moyen (90-130 min)":
-        filtered = filtered[(filtered['minute'].astype(float) >= 90) & (filtered['minute'].astype(float) <= 130)]
-    elif duration_choice == "Long (> 130 min)":
-        filtered = filtered[filtered['minute'].astype(float) > 130]
-        
-    return filtered
-
+# --- LOGIQUE DE GÉNÉRATION ---
 if selected_labels:
     results = get_combined_recs(selected_labels)
-    results = results[pd.to_numeric(results['rating'], errors='coerce') >= 3.0]
-    st.write("---")
-    col1, col2, col3 = st.columns(3)
     
-    def draw_movie(category, cat_filter, streamlit_col, highlight_color):
-        recs = results[results['category'].str.lower() == cat_filter.lower()]
-        if len(recs) > st.session_state.offset:
-            movie = recs.iloc[st.session_state.offset]
-            url = str(movie['film_url']) if 'film_url' in movie else "#"
-            img = str(movie['poster_url']) if movie['poster_url'] != "" else "https://via.placeholder.com/160x240"
-            
-            with streamlit_col:
-                # Titre catégorie
-                st.markdown(f"<h2 style='color:{highlight_color} !important; text-align: center;'>{category}</h2>", unsafe_allow_html=True)
-                
-                # Poster
-                st.markdown(f'<a href="{url}" target="_blank"><img src="{img}" class="poster-img"></a>', unsafe_allow_html=True)
-                
-                # Titre Film
-                st.markdown(f'<a href="{url}" target="_blank" style="text-decoration:none;"><div class="movie-title">{movie["name"]}</div></a>', unsafe_allow_html=True)
-                
-                # Infos (Année | Note | Temps)
-                year = str(movie['year'])[:4]
-                try:
-                    time = f"{int(float(movie['minute']))} min" if movie['minute'] != "" else ""
-                except: time = ""
-                st.markdown(f"<div class='info-line'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</div>", unsafe_allow_html=True)
-                
-                # Description
-                st.markdown(f'<div class="desc-container"><p>{movie["description"]}</p></div>', unsafe_allow_html=True)
-                
-                # Crédits
-                st.markdown(f"<div class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</div>", unsafe_allow_html=True)
+    # Filtre Note
+    results = results[pd.to_numeric(results['rating'], errors='coerce') >= min_rating]
+    
+    # Filtre Durée
+    if duration_choice != "Peu importe":
+        results['minute'] = pd.to_numeric(results['minute'], errors='coerce')
+        if duration_choice == "Court":
+            results = results[results['minute'] < 90]
+        elif duration_choice == "Moyen":
+            results = results[(results['minute'] >= 90) & (results['minute'] <= 130)]
+        elif duration_choice == "Long":
+            results = results[results['minute'] > 130]
 
-    draw_movie("LA VALEUR SÛRE", "Blockbuster", col1, HIGHLIGHT_ORANGE)
-    draw_movie("LE CHOIX CULTE", "Culte", col2, HIGHLIGHT_BLUE)
-    draw_movie("LA PÉPITE", "Pépite", col3, HIGHLIGHT_GREEN)
+    # Filtre Genres
+    if selected_genres:
+        genre_pattern = '|'.join(selected_genres)
+        results = results[results['genres'].str.contains(genre_pattern, case=False, na=False)]
 
-else:
-    st.info("Sélectionne des films pour découvrir ta Triade.")
+    st.write("---")
+    
+    if results.empty:
+        st.warning("Oups ! Aucun film ne correspond à tes filtres. Essaie d'être moins exigeant.")
+    else:
+        col1, col2, col3 = st.columns(3)
 
+        # Définition de la fonction d'affichage
+        def draw_movie(category, cat_filter, streamlit_col, highlight_color):
+            recs = results[results['category'].str.lower() == cat_filter.lower()]
+            if len(recs) > st.session_state.offset:
+                movie = recs.iloc[st.session_state.offset]
+                url = str(movie['film_url']) if 'film_url' in movie else "#"
+                img = str(movie['poster_url']) if movie['poster_url'] != "" else "https://via.placeholder.com/160x240"
+                
+                with streamlit_col:
+                    st.markdown(f"<h2 style='color:{highlight_color} !important; text-align: center;'>{category}</h2>", unsafe_allow_html=True)
+                    st.markdown(f'<a href="{url}" target="_blank"><img src="{img}" class="poster-img"></a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="{url}" target="_blank" style="text-decoration:none;"><div class="movie-title">{movie["name"]}</div></a>', unsafe_allow_html=True)
+                    
+                    year = str(movie['year'])[:4]
+                    try:
+                        time = f"{int(float(movie['minute']))} min" if movie['minute'] != "" else ""
+                    except: time = ""
+                    st.markdown(f"<div class='info-line'>{year} | ⭐ {movie['rating']} {f'| {time}' if time else ''}</div>", unsafe_allow_html=True)
+                    st.markdown(f'<div class="desc-container"><p>{movie["description"]}</p></div>', unsafe_allow_html=True)
+                    st.markdown(f"<div class='credits-text'><b>Director:</b> {clean_credits(movie['director'])}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='credits-text'><b>Cast:</b> {clean_credits(movie['cast'], True)}</div>", unsafe_allow_html=True)
+
+        # Appels de la fonction (Bien alignés sous le else)
+        draw_movie("LA VALEUR SÛRE", "Blockbuster", col1, HIGHLIGHT_ORANGE)
+        draw_movie("LE CHOIX CULTE", "Culte", col2, HIGHLIGHT_BLUE)
+        draw_movie("LA PÉPITE", "Pépite", col3, HIGHLIGHT_GREEN)
+
+# Description méthodologique en bas de page
 st.write("---")
 st.markdown("""
-<div style="opacity: 0.8; font-size: 0.85rem; text-align: justify; padding: 20px;">
-    <strong>Comment est générée votre Triade ?</strong><br><br>
-    Chaque recommandation est issue d'une analyse sémantique (NLP) croisant thèmes, keywords et équipe technique. 
-    Les films sont ensuite segmentés selon leur impact sur la communauté Letterboxd :<br><br>
-    • 🟠 <strong>La Valeur Sûre</strong> : Plus de 450 000 spectateurs. Un succès incontournable.<br>
-    • 🔵 <strong>Le Choix Culte</strong> : Entre 50 000 et 450 000 spectateurs, avec une surperformance du ratio de likes.<br>
-    • 🟢 <strong>La Pépite</strong> : Moins de 50 000 spectateurs. Un trésor caché avec un fort taux d'appréciation.
+<div style="opacity: 1; font-size: 0.85rem; text-align: justify; padding: 20px;">
+    <strong>Comment est générée votre Triade ?</strong><br>
+    Chaque recommandation est issue d'une analyse sémantique croisant thèmes, keywords et équipe technique. 
+    Les films sont segmentés selon leur impact sur la communauté Letterboxd :<br>
+    • 🟠 <strong>La Valeur Sûre</strong> : Un large nombre de spectateurs, le classique que tout le monde a vu.<br>
+    • 🔵 <strong>Le Choix Culte</strong> : Un film souvent moins connu du grand public, mais qui fédère les utilisateurs.<br>
+    • 🟢 <strong>La Pépite</strong> : Un film très peu connu mais qui conquiert le coeur de ceux qui l'ont découvert.
 </div>
 """, unsafe_allow_html=True)
