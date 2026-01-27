@@ -255,12 +255,12 @@ else:
 
 st.write("---")
 st.markdown("""
-<div style="opacity: 0.6; font-size: 0.85rem; text-align: justify; padding: 20px;">
+<div style="opacity: 0.8; font-size: 0.85rem; text-align: justify; padding: 20px;">
     <strong>Comment est générée votre Triade ?</strong><br><br>
     Chaque recommandation est issue d'une analyse sémantique (NLP) croisant thèmes, keywords et équipe technique. 
     Les films sont ensuite segmentés selon leur impact sur la communauté Letterboxd :<br><br>
     • 🟠 <strong>La Valeur Sûre</strong> : Plus de 450 000 spectateurs. Un succès incontournable.<br>
-    • 🔵 <strong>Le Choix Culte</strong> : Entre 50 000 et 450 000 spectateurs, avec une surperformance du ratio de "likes".<br>
+    • 🔵 <strong>Le Choix Culte</strong> : Entre 50 000 et 450 000 spectateurs, avec une surperformance du ratio de likes.<br>
     • 🟢 <strong>La Pépite</strong> : Moins de 50 000 spectateurs. Un trésor caché avec un fort taux d'appréciation.
 </div>
 """, unsafe_allow_html=True)
