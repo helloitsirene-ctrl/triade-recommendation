@@ -116,6 +116,32 @@ st.markdown(f"""
         text-align: center !important;
         width: 100%;
     }}
+
+    st.markdown("""
+    <style>
+        /* Couleur de la barre du slider (la partie sélectionnée) */
+        div[data-baseweb="slider"] > div > div > div {
+            background-color: #00c030 !important; /* Vert Letterboxd par défaut */
+        }
+
+        /* Couleur du petit bouton rond (le "handle") */
+        div[data-baseweb="slider"] > div > div > div > div {
+            background-color: #ffffff !important;
+            border: 2px solid #00c030 !important;
+        }
+        
+        /* Couleur des étiquettes (labels) du select_slider pour la durée */
+        div[data-testid="stWidgetLabel"] p {
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+        
+        /* Couleur des options textuelles du slider de durée */
+        div[data-testid="stMarkdownContainer"] p {
+            font-size: 0.9rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
 </style>
 """, unsafe_allow_html=True)
 
@@ -260,7 +286,7 @@ st.markdown("""
     Chaque recommandation est issue d'une analyse sémantique croisant thèmes, keywords et équipe technique. 
     Les films sont segmentés selon leur impact sur la communauté Letterboxd :<br>
     • 🟠 <strong>La Valeur Sûre</strong> : Un large nombre de spectateurs, le classique que tout le monde a vu.<br>
-    • 🔵 <strong>Le Choix Culte</strong> : Un film souvent moins connu du grand public, mais qui fédère les utilisateurs.<br>
-    • 🟢 <strong>La Pépite</strong> : Un film très peu connu mais qui conquiert le coeur de ceux qui l'ont découvert.
+    • 🔵 <strong>Le Choix Culte</strong> : Un film souvent moins connu du grand public, mais qui fédère les utilisateurs l'ayant vu.<br>
+    • 🟢 <strong>La Pépite</strong> : Un film très peu connu, mais ceux qui l'ont découvert en sont tombé amoureux.
 </div>
 """, unsafe_allow_html=True)
