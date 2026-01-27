@@ -117,8 +117,6 @@ st.markdown(f"""
         width: 100%;
     }}
 
-    st.markdown("""
-    <style>
         /* Couleur de la barre du slider (la partie sélectionnée) */
         div[data-baseweb="slider"] > div > div > div {
             background-color: #00c030 !important; /* Vert Letterboxd par défaut */
