@@ -168,7 +168,8 @@ c_search, c_btn = st.columns([10, 1])
 with c_search:
     selected_labels = st.multiselect(
         "RECHERCHE TES FILMS FAVORIS :",
-        options=df['display_name'].sort_values().unique().tolist(), # Utilise display_name ici pour la cohérence
+        # Remplace 'display_name' par le nom exact de ta colonne (probablement search_label)
+        options=df['search_label'].sort_values().unique().tolist(), 
         max_selections=4
     )
 
