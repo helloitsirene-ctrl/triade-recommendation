@@ -138,6 +138,39 @@ st.markdown(f"""
         div[data-testid="stMarkdownContainer"] p {{
             font-size: 0.9rem;
         }}
+
+        /* 1. Supprimer le rouge au focus de la recherche et des genres */
+    div[data-baseweb="select"] > div {{
+        border-color: transparent !important;
+        box-shadow: none !important;
+    }}
+    
+    /* Couleur des étiquettes de genres (tags) en bleu pour éviter le rouge */
+    span[data-baseweb="tag"] {{
+        background-color: {HIGHLIGHT_BLUE} !important;
+        color: white !important;
+    }}
+
+    /* 2. Configuration des Sliders (Note et Durée) */
+    
+    /* La barre (le rail) du slider en gris comme la recherche */
+    div[data-baseweb="slider"] > div > div > div {{
+        background-color: {SEARCH_GRAY} !important;
+    }}
+
+    /* Le bouton du slider : Blanc avec contour bleu */
+    div[data-baseweb="slider"] > div > div > div > div {{
+        background-color: #ffffff !important;
+        border: 2px solid {HIGHLIGHT_BLUE} !important;
+    }}
+    
+    /* 3. Force TOUS les textes des filtres en BLANC */
+    div[data-testid="stWidgetLabel"] p, 
+    div[data-testid="stMarkdownContainer"] p,
+    div[data-baseweb="slider"] div {{
+        color: white !important;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
