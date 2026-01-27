@@ -51,7 +51,7 @@ st.markdown(f"""
         height: 40px;
         font-size: 1.5rem !important;
         border: none;
-        margin-top: 28px;
+        margin-top: 0px;
     }}
 
     /* CENTRAGE ABSOLU DES COLONNES */
@@ -180,8 +180,8 @@ with c_btn:
         st.rerun()
 
 # --- FILTRES AVANCÉS ---
-with st.expander("⚙️ Filtres avancés"):
-    f_col1, f_col2 = st.columns(2)
+with st.expander("Filtres avancés"):
+    f_col1, f_col2 = st.columns(1)
     with f_col1:
         min_rating = st.slider("Note Letterboxd minimum", 0.0, 5.0, 3.0, 0.5)
         duration_choice = st.select_slider(
