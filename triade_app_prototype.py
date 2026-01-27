@@ -171,6 +171,42 @@ st.markdown(f"""
         color: white !important;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
     }}
+
+
+/* --- STYLE DE L'EXPANDER (FILTRES AVANCÉS) --- */
+    
+    /* Supprimer le fond blanc et la bordure rouge/claire */
+    div[data-testid="stExpander"] {
+        background-color: transparent !important;
+        border: 1px solid #444c56 !important; /* Petit contour gris discret */
+        border-radius: 8px;
+    }
+
+    /* Forcer le texte du titre de l'expander en blanc */
+    div[data-testid="stExpander"] summary p {
+        color: white !important;
+    }
+
+    /* --- SLIDER GRIS & TEXTE BLANC --- */
+
+    /* La barre du slider en gris (couleur de tes titres/recherche) */
+    div[data-baseweb="slider"] > div > div > div {
+        background-color: #2c3440 !important; /* Gris Letterboxd */
+    }
+
+    /* Le bouton du slider (Handle) toujours propre */
+    div[data-baseweb="slider"] > div > div > div > div {
+        background-color: #ffffff !important;
+        border: 2px solid {HIGHLIGHT_BLUE} !important;
+    }
+
+    /* Forcer TOUS les textes des filtres en blanc */
+    div[data-testid="stWidgetLabel"] p, 
+    div[data-testid="stMarkdownContainer"] p,
+    div[data-baseweb="slider"] div {
+        color: white !important;
+    }
+    
     </style>
 """, unsafe_allow_html=True)
 
