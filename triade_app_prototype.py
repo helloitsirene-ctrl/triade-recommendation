@@ -30,34 +30,59 @@ st.markdown(f"""
         margin-bottom: 20px;
     }}
 
-    /* --- SLIDERS (RETOUR AUX COULEURS SOBRES) --- */
+    /* --- RECHERCHE ET GENRES (FINI LE ROUGE) --- */
     
-    /* La barre du slider (Bleu Letterboxd) */
-    div[data-baseweb="slider"] > div > div > div {{
-        background-color: {HIGHLIGHT_BLUE} !important;
+    /* Fond de la barre de recherche */
+    div[data-baseweb="select"] > div {{
+        background-color: {SEARCH_GRAY} !important;
+        color: white !important;
+        border-color: transparent !important;
     }}
 
-    /* Le petit bouton (Handle) : Blanc avec contour bleu */
+    /* Contour quand on clique dans la recherche (Focus) */
+    div[data-baseweb="select"]:focus-within {{
+        border-color: {HIGHLIGHT_BLUE} !important;
+    }}
+
+    /* Les étiquettes (tags) des genres sélectionnés */
+    span[data-baseweb="tag"] {{
+        background-color: {HIGHLIGHT_BLUE} !important;
+        color: white !important;
+    }}
+
+    /* --- SLIDERS (GRIS ET BLEU) --- */
+    
+    /* La barre totale du slider (le rail) */
+    div[data-baseweb="slider"] > div {{
+        background-color: transparent !important;
+    }}
+
+    /* La partie "vide" du rail (en gris comme les titres/recherche) */
+    div[data-baseweb="slider"] [role="presentation"] {{
+        background-color: {SEARCH_GRAY} !important;
+    }}
+
+    /* La partie "remplie" du rail (on la met en gris un peu plus clair ou bleu) */
+    div[data-baseweb="slider"] > div > div > div {{
+        background-color: #444c56 !important; 
+    }}
+
+    /* Le bouton rond (Handle) */
     div[data-baseweb="slider"] > div > div > div > div {{
         background-color: #ffffff !important;
         border: 2px solid {HIGHLIGHT_BLUE} !important;
     }}
     
-    /* Couleur du texte des sliders (Blanc, fini le rouge !) */
+    /* Forcer TOUS les textes des labels et sliders en blanc */
     div[data-testid="stWidgetLabel"] p, 
-    div[data-testid="stMarkdownContainer"] p {{
+    div[data-testid="stMarkdownContainer"] p,
+    div[data-baseweb="slider"] div {{
         color: white !important;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         font-weight: normal !important;
     }}
 
-    /* --- RESTE DE L'INTERFACE --- */
+    /* --- DESIGN DES CARTES --- */
     
-    div[data-baseweb="select"] > div {{
-        background-color: {SEARCH_GRAY} !important;
-        color: #14181c !important;
-    }}
-
     .movie-title {{
         font-family: 'Bebas Neue', cursive;
         font-size: 2rem;
@@ -69,7 +94,6 @@ st.markdown(f"""
         background-color: {DESC_BG};
         padding: 15px;
         border-radius: 8px;
-        margin: 15px auto;
     }}
     
     .desc-container p {{
