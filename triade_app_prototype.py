@@ -214,6 +214,7 @@ if selected_labels:
     results = get_combined_recs(selected_labels)
     st.write("---")
     col1, col2, col3 = st.columns(3)
+    results = all_recs[pd.to_numeric(all_recs['rating'], errors='coerce') >= 3.0]
     
     def draw_movie(category, cat_filter, streamlit_col, highlight_color):
         recs = results[results['category'].str.lower() == cat_filter.lower()]
