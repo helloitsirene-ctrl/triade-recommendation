@@ -192,6 +192,8 @@ with st.expander("⚙️ Filtres avancés"):
         )
     with f_col2:
         all_genres = sorted(list(set([g.strip() for sublist in df['genres'].str.split(',') for g in sublist if g])))
+        # On nettoie les crochets et les guillemets avant de découper
+        all_genres = sorted(list(set([g.replace("[", "").replace("]", "").replace("'", "").strip() for sublist in df['genres'].dropna().str.split(',') for g in sublist if g])))
         selected_genres = st.multiselect("Genres spécifiques", all_genres)
 
 # --- LOGIQUE DE GÉNÉRATION ---
