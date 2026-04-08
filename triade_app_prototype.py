@@ -450,15 +450,16 @@ if selected_labels:
     else:
         col1, col2, col3 = st.columns(3)
 
-        def draw_movie(category_label, cat_filter, streamlit_col, highlight_color):
+       def draw_movie(category_label, cat_filter, streamlit_col, highlight_color):
             # Filtre via la liste de catégories (zone de chevauchement)
             recs = results[results['categories'].apply(lambda c: cat_filter.lower() in c)]
 
-# DEBUG temporaire
-with streamlit_col:
-    st.write(f"DEBUG {cat_filter}: offset={st.session_state.offset}, len(recs)={len(recs)}")
-    st.write(f"Années dispo: {sorted(pd.to_numeric(recs['year'], errors='coerce').dropna().unique().tolist())[:10]}")
-    st.write(f"Décennies sélectionnées: {selected_decades}")
+            # DEBUG temporaire
+            with streamlit_col:
+                st.write(f"DEBUG {cat_filter}: offset={st.session_state.offset}, len(recs)={len(recs)}")
+                st.write(f"Années dispo: {sorted(pd.to_numeric(recs['year'], errors='coerce').dropna().unique().tolist())[:10]}")
+                st.write(f"Décennies sélectionnées: {selected_decades}")
+
             if len(recs) == 0:
                 with streamlit_col:
                     st.markdown(
