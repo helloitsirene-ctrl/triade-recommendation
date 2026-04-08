@@ -361,12 +361,16 @@ if selected_labels != st.session_state.last_selection:
 with st.expander("Filtres avancés"):
     f_col1, f_col2 = st.columns(2)
     with f_col1:
-        min_rating = st.slider("Note Letterboxd minimum", 0.0, 5.0, 3.0, 0.5)
+        min_rating = st.slider(
+            "Note Letterboxd minimum", 0.0, 5.0, 3.0, 0.5,
+            key="filter_min_rating"
+        )
         duration_choice = st.select_slider(
             "Durée du film",
             options=["Peu importe", "Court", "Moyen", "Long"],
             value="Peu importe",
-            help="Court: <90min | Moyen: 90-130min | Long: >130min"
+            help="Court: <90min | Moyen: 90-130min | Long: >130min",
+            key="filter_duration"
         )
     with f_col2:
         # Parsing propre des genres, une seule fois
@@ -379,14 +383,19 @@ with st.expander("Filtres avancés"):
         selected_genres_display = st.multiselect(
             "Genres spécifiques",
             options=all_genres,
-            format_func=lambda g: g.capitalize()
+            format_func=lambda g: g.capitalize(),
+            key="filter_genres"
         )
         selected_genres = selected_genres_display
 
         # Filtre par décennie
         decade_options = ["Avant 1950", "1950s", "1960s", "1970s", "1980s",
                           "1990s", "2000s", "2010s", "2020s"]
-        selected_decades = st.multiselect("Décennie", options=decade_options)
+        selected_decades = st.multiselect(
+            "Décennie",
+            options=decade_options,
+            key="filter_decades"
+        )
 
 # --- LOGIQUE DE GÉNÉRATION ---
 if selected_labels:
