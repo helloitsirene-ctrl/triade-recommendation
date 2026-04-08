@@ -357,20 +357,48 @@ if selected_labels != st.session_state.last_selection:
     st.session_state.offset = 0
     st.session_state.last_selection = selected_labels
 
+# --- INITIALISATION DES VALEURS PERSISTANTES DES FILTRES ---
+# On utilise des clés "miroir" qu'on contrôle, indépendantes des widgets,
+# parce que Streamlit oublie les valeurs des widgets dans un expander fermé au rerun.
+if "persist_min_rating" not in st.session_state:
+    st.session_state.persist_min_rating = 3.0
+if "persist_duration" not in st.session_state:
+    st.session_state.persist_duration = "Peu importe"
+if "persist_genres" not in st.session_state:
+    st.session_state.persist_genres = []
+if "persist_decades" not in st.session_state:
+    st.session_state.persist_decades = []
+
+# Callbacks : copient la valeur du widget vers la clé persistante à chaque changement
+def _sync_min_rating():
+    st.session_state.persist_min_rating = st.session_state.filter_min_rating
+
+def _sync_duration():
+    st.session_state.persist_duration = st.session_state.filter_duration
+
+def _sync_genres():
+    st.session_state.persist_genres = st.session_state.filter_genres
+
+def _sync_decades():
+    st.session_state.persist_decades = st.session_state.filter_decades
+
 # --- FILTRES AVANCÉS ---
 with st.expander("Filtres avancés"):
     f_col1, f_col2 = st.columns(2)
     with f_col1:
         st.slider(
-            "Note Letterboxd minimum", 0.0, 5.0, 3.0, 0.5,
-            key="filter_min_rating"
+            "Note Letterboxd minimum", 0.0, 5.0,
+            value=st.session_state.persist_min_rating, step=0.5,
+            key="filter_min_rating",
+            on_change=_sync_min_rating
         )
         st.select_slider(
             "Durée du film",
             options=["Peu importe", "Court", "Moyen", "Long"],
-            value="Peu importe",
+            value=st.session_state.persist_duration,
             help="Court: <90min | Moyen: 90-130min | Long: >130min",
-            key="filter_duration"
+            key="filter_duration",
+            on_change=_sync_duration
         )
     with f_col2:
         # Parsing propre des genres, une seule fois
@@ -379,12 +407,13 @@ with st.expander("Filtres avancés"):
             all_genres_set.update(clean_genre_string(genre_str))
         all_genres = sorted(all_genres_set)
 
-        # Affichage avec majuscule, mais on garde la valeur originale pour le filtrage
         st.multiselect(
             "Genres spécifiques",
             options=all_genres,
+            default=st.session_state.persist_genres,
             format_func=lambda g: g.capitalize(),
-            key="filter_genres"
+            key="filter_genres",
+            on_change=_sync_genres
         )
 
         # Filtre par décennie
@@ -393,14 +422,16 @@ with st.expander("Filtres avancés"):
         st.multiselect(
             "Décennie",
             options=decade_options,
-            key="filter_decades"
+            default=st.session_state.persist_decades,
+            key="filter_decades",
+            on_change=_sync_decades
         )
 
-# Lire les valeurs des filtres depuis session_state (résiste au refresh dans expander fermé)
-min_rating = st.session_state.get("filter_min_rating", 3.0)
-duration_choice = st.session_state.get("filter_duration", "Peu importe")
-selected_genres = st.session_state.get("filter_genres", [])
-selected_decades = st.session_state.get("filter_decades", [])
+# Lire les valeurs depuis les clés persistantes (résiste à tous les rerun)
+min_rating = st.session_state.persist_min_rating
+duration_choice = st.session_state.persist_duration
+selected_genres = st.session_state.persist_genres
+selected_decades = st.session_state.persist_decades
 
 # --- LOGIQUE DE GÉNÉRATION ---
 if selected_labels:
@@ -458,15 +489,6 @@ if selected_labels:
         def draw_movie(category_label, cat_filter, streamlit_col, highlight_color):
             # Filtre via la liste de catégories (zone de chevauchement)
             recs = results[results['categories'].apply(lambda c: cat_filter.lower() in c)]
-
-            # DEBUG temporaire
-            with streamlit_col:
-                st.write(f"DEBUG {cat_filter}: offset={st.session_state.offset}, len(recs)={len(recs)}")
-                years_debug = sorted(pd.to_numeric(recs['year'], errors='coerce').dropna().unique().tolist())[:10]
-                st.write(f"Années dispo: {years_debug}")
-                st.write(f"Variable selected_decades: {selected_decades}")
-                st.write(f"session_state filter_decades: {st.session_state.get('filter_decades', 'ABSENT')}")
-                st.write(f"Toutes les keys session_state: {list(st.session_state.keys())}")
 
             if len(recs) == 0:
                 with streamlit_col:
