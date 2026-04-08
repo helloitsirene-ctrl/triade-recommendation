@@ -163,12 +163,34 @@ st.markdown(f"""
         border: 2px solid {HIGHLIGHT_BLUE} !important;
     }}
 
-    /* TEXTES BLANCS pour les filtres */
+    /* TEXTES BLANCS pour les labels des filtres (pas l'intérieur du slider) */
     div[data-testid="stWidgetLabel"] p,
-    div[data-testid="stMarkdownContainer"] p,
-    div[data-baseweb="slider"] div {{
+    div[data-testid="stMarkdownContainer"] p {{
         color: white !important;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+    }}
+
+    /* Valeurs min/max sous le slider — texte blanc visible sur fond sombre */
+    div[data-testid="stSliderTickBarMin"],
+    div[data-testid="stSliderTickBarMax"] {{
+        color: white !important;
+    }}
+
+    /* Valeur courante du slider (la bulle au-dessus du handle) — texte sombre sur fond clair */
+    div[data-baseweb="slider"] [role="slider"] + div,
+    div[data-baseweb="slider"] div[data-testid="stThumbValue"] {{
+        color: {APP_BG} !important;
+    }}
+
+    /* Tooltip du point d'interrogation (help) — fond sombre, texte blanc */
+    div[data-baseweb="tooltip"] {{
+        background-color: {DESC_BG} !important;
+        color: white !important;
+    }}
+
+    div[data-baseweb="tooltip"] div {{
+        background-color: {DESC_BG} !important;
+        color: white !important;
     }}
 
     /* EXPANDER "Filtres avancés" — fond sombre, texte blanc */
