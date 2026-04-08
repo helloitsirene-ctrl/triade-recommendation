@@ -153,22 +153,63 @@ st.markdown(f"""
         width: 100%;
     }}
 
-    /* SLIDERS : rail gris, handle blanc à contour bleu */
-    div[data-baseweb="slider"] > div > div > div {{
-        background-color: {SEARCH_GRAY} !important;
-    }}
-
-    div[data-baseweb="slider"] > div > div > div > div {{
+    /* SLIDERS : on force le bleu sur la partie remplie (sinon Streamlit met du rouge) */
+    /* Handle (le bouton rond) */
+    div[data-baseweb="slider"] [role="slider"] {{
         background-color: #ffffff !important;
         border: 2px solid {HIGHLIGHT_BLUE} !important;
     }}
 
+    /* Override Streamlit : la barre rouge par défaut devient bleue */
+    .stSlider [data-baseweb="slider"] > div > div > div > div {{
+        background: {HIGHLIGHT_BLUE} !important;
+    }}
+
+    .stSlider [data-baseweb="slider"] > div > div {{
+        background: {SEARCH_GRAY} !important;
+    }}
+
+    /* Valeurs min/max et valeur courante du slider en blanc */
+    .stSlider [data-testid="stTickBar"] div,
+    .stSlider div[data-baseweb="slider"] div {{
+        color: white !important;
+    }}
+
     /* TEXTES BLANCS pour les filtres */
     div[data-testid="stWidgetLabel"] p,
-    div[data-testid="stMarkdownContainer"] p,
-    div[data-baseweb="slider"] div {{
+    div[data-testid="stMarkdownContainer"] p {{
         color: white !important;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+    }}
+
+    /* EXPANDER "Filtres avancés" — fond sombre, texte blanc */
+    div[data-testid="stExpander"] {{
+        background-color: {DESC_BG} !important;
+        border: 1px solid #2c3440 !important;
+        border-radius: 8px !important;
+    }}
+
+    /* Header de l'expander (la partie cliquable) */
+    div[data-testid="stExpander"] summary,
+    div[data-testid="stExpander"] details > summary {{
+        background-color: {DESC_BG} !important;
+        color: white !important;
+    }}
+
+    div[data-testid="stExpander"] summary p,
+    div[data-testid="stExpander"] summary span {{
+        color: white !important;
+        font-weight: bold !important;
+    }}
+
+    /* Contenu de l'expander une fois ouvert */
+    div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] {{
+        background-color: {DESC_BG} !important;
+    }}
+
+    /* Icône chevron de l'expander en blanc */
+    div[data-testid="stExpander"] svg {{
+        fill: white !important;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -322,7 +363,14 @@ with st.expander("Filtres avancés"):
         for genre_str in df['genres'].dropna():
             all_genres_set.update(clean_genre_string(genre_str))
         all_genres = sorted(all_genres_set)
-        selected_genres = st.multiselect("Genres spécifiques", all_genres)
+
+        # Affichage avec majuscule, mais on garde la valeur originale pour le filtrage
+        selected_genres_display = st.multiselect(
+            "Genres spécifiques",
+            options=all_genres,
+            format_func=lambda g: g.capitalize()
+        )
+        selected_genres = selected_genres_display
 
 # --- LOGIQUE DE GÉNÉRATION ---
 if selected_labels:
