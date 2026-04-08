@@ -361,11 +361,11 @@ if selected_labels != st.session_state.last_selection:
 with st.expander("Filtres avancés"):
     f_col1, f_col2 = st.columns(2)
     with f_col1:
-        min_rating = st.slider(
+        st.slider(
             "Note Letterboxd minimum", 0.0, 5.0, 3.0, 0.5,
             key="filter_min_rating"
         )
-        duration_choice = st.select_slider(
+        st.select_slider(
             "Durée du film",
             options=["Peu importe", "Court", "Moyen", "Long"],
             value="Peu importe",
@@ -380,22 +380,27 @@ with st.expander("Filtres avancés"):
         all_genres = sorted(all_genres_set)
 
         # Affichage avec majuscule, mais on garde la valeur originale pour le filtrage
-        selected_genres_display = st.multiselect(
+        st.multiselect(
             "Genres spécifiques",
             options=all_genres,
             format_func=lambda g: g.capitalize(),
             key="filter_genres"
         )
-        selected_genres = selected_genres_display
 
         # Filtre par décennie
         decade_options = ["Avant 1950", "1950s", "1960s", "1970s", "1980s",
                           "1990s", "2000s", "2010s", "2020s"]
-        selected_decades = st.multiselect(
+        st.multiselect(
             "Décennie",
             options=decade_options,
             key="filter_decades"
         )
+
+# Lire les valeurs des filtres depuis session_state (résiste au refresh dans expander fermé)
+min_rating = st.session_state.get("filter_min_rating", 3.0)
+duration_choice = st.session_state.get("filter_duration", "Peu importe")
+selected_genres = st.session_state.get("filter_genres", [])
+selected_decades = st.session_state.get("filter_decades", [])
 
 # --- LOGIQUE DE GÉNÉRATION ---
 if selected_labels:
@@ -453,13 +458,6 @@ if selected_labels:
         def draw_movie(category_label, cat_filter, streamlit_col, highlight_color):
             # Filtre via la liste de catégories (zone de chevauchement)
             recs = results[results['categories'].apply(lambda c: cat_filter.lower() in c)]
-
-            # DEBUG temporaire
-            with streamlit_col:
-                st.write(f"DEBUG {cat_filter}: offset={st.session_state.offset}, len(recs)={len(recs)}")
-                years_debug = sorted(pd.to_numeric(recs['year'], errors='coerce').dropna().unique().tolist())[:10]
-                st.write(f"Années dispo: {years_debug}")
-                st.write(f"Décennies sélectionnées: {selected_decades}")
 
             if len(recs) == 0:
                 with streamlit_col:
