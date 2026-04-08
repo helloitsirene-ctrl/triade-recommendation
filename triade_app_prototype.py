@@ -153,31 +153,20 @@ st.markdown(f"""
         width: 100%;
     }}
 
-    /* SLIDERS : on force le bleu sur la partie remplie (sinon Streamlit met du rouge) */
-    /* Handle (le bouton rond) */
-    div[data-baseweb="slider"] [role="slider"] {{
+    /* SLIDERS : rail gris, handle blanc à contour bleu */
+    div[data-baseweb="slider"] > div > div > div {{
+        background-color: {SEARCH_GRAY} !important;
+    }}
+
+    div[data-baseweb="slider"] > div > div > div > div {{
         background-color: #ffffff !important;
         border: 2px solid {HIGHLIGHT_BLUE} !important;
     }}
 
-    /* Override Streamlit : la barre rouge par défaut devient bleue */
-    .stSlider [data-baseweb="slider"] > div > div > div > div {{
-        background: {HIGHLIGHT_BLUE} !important;
-    }}
-
-    .stSlider [data-baseweb="slider"] > div > div {{
-        background: {SEARCH_GRAY} !important;
-    }}
-
-    /* Valeurs min/max et valeur courante du slider en blanc */
-    .stSlider [data-testid="stTickBar"] div,
-    .stSlider div[data-baseweb="slider"] div {{
-        color: white !important;
-    }}
-
     /* TEXTES BLANCS pour les filtres */
     div[data-testid="stWidgetLabel"] p,
-    div[data-testid="stMarkdownContainer"] p {{
+    div[data-testid="stMarkdownContainer"] p,
+    div[data-baseweb="slider"] div {{
         color: white !important;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
     }}
