@@ -459,6 +459,15 @@ if selected_labels:
             # Filtre via la liste de catégories (zone de chevauchement)
             recs = results[results['categories'].apply(lambda c: cat_filter.lower() in c)]
 
+            # DEBUG temporaire
+            with streamlit_col:
+                st.write(f"DEBUG {cat_filter}: offset={st.session_state.offset}, len(recs)={len(recs)}")
+                years_debug = sorted(pd.to_numeric(recs['year'], errors='coerce').dropna().unique().tolist())[:10]
+                st.write(f"Années dispo: {years_debug}")
+                st.write(f"Variable selected_decades: {selected_decades}")
+                st.write(f"session_state filter_decades: {st.session_state.get('filter_decades', 'ABSENT')}")
+                st.write(f"Toutes les keys session_state: {list(st.session_state.keys())}")
+
             if len(recs) == 0:
                 with streamlit_col:
                     st.markdown(
