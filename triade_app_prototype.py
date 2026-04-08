@@ -383,6 +383,11 @@ with st.expander("Filtres avancés"):
         )
         selected_genres = selected_genres_display
 
+        # Filtre par décennie
+        decade_options = ["Avant 1950", "1950s", "1960s", "1970s", "1980s",
+                          "1990s", "2000s", "2010s", "2020s"]
+        selected_decades = st.multiselect("Décennie", options=decade_options)
+
 # --- LOGIQUE DE GÉNÉRATION ---
 if selected_labels:
     results = get_combined_recs(selected_labels)
@@ -405,6 +410,29 @@ if selected_labels:
     if selected_genres:
         genre_pattern = '|'.join(selected_genres)
         results = results[results['genres'].str.contains(genre_pattern, case=False, na=False)]
+
+    # Filtre Décennie
+    if selected_decades:
+        results = results.copy()
+        years_numeric = pd.to_numeric(results['year'], errors='coerce')
+
+        decade_ranges = {
+            "Avant 1950": (0, 1950),
+            "1950s": (1950, 1960),
+            "1960s": (1960, 1970),
+            "1970s": (1970, 1980),
+            "1980s": (1980, 1990),
+            "1990s": (1990, 2000),
+            "2000s": (2000, 2010),
+            "2010s": (2010, 2020),
+            "2020s": (2020, 2030),
+        }
+
+        decade_mask = pd.Series(False, index=results.index)
+        for decade in selected_decades:
+            low, high = decade_ranges[decade]
+            decade_mask |= (years_numeric >= low) & (years_numeric < high)
+        results = results[decade_mask]
 
     st.write("---")
 
